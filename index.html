@@ -152,7 +152,7 @@
     <img src="https://euemerge.eu/wp-content/uploads/2025/05/emerge_website.png" alt="EMERGE Logo" class="header-logo" />
     <div class="header-text">
       <h1>EMERGE Calendar Hub</h1>
-      <p>Toggle Work Packages · Filter by event type · Shaded weekends &amp; partner holidays</p>
+
     </div>
   </div>
 </header>
@@ -484,7 +484,9 @@
             const sel = getSelectionFromStorage() || defaultSelection();
             const params = new URLSearchParams();
             params.set('wps', Array.from(sel).sort().join(',') || 'none');
-            window.location.href = 'timeline.html?' + params.toString();
+            const yr = new Date().getFullYear();
+            const yrPage = [2025,2026,2027,2028].includes(yr) ? 'timeline_'+yr+'.html' : 'timeline.html';
+            window.location.href = yrPage + '?' + params.toString();
           }
         }
       },

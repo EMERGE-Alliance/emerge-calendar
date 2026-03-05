@@ -3,7 +3,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>EMERGE – Timeline (WPs + Holidays)</title>
+  <title>EMERGE – Timeline 2027</title>
 
   <!-- vis-timeline (self-hosted) — relative paths for GitHub Pages compatibility -->
   <link rel="stylesheet" href="./vendor/vis-timeline-graph2d.min.css">
@@ -119,18 +119,18 @@
   <div class="header-container">
     <img src="https://euemerge.eu/wp-content/uploads/2025/05/emerge_website.png" alt="EMERGE Logo" class="header-logo" />
     <div class="header-text">
-      <h1>EMERGE – Timeline (WPs + Holidays)</h1>
-      <p>Filter by Work Package and event type</p>
+      <h1>EMERGE – Timeline 2027</h1>
+      <p>Showing 2027 events · Filter by Work Package and event type</p>
     </div>
   </div>
 </header>
 
 <nav class="wp-nav">
   <a href="index.html" id="homeLink">Home</a>
-  <a href="timeline.html" class="active">All Years</a>
+  <a href="timeline.html" >All Years</a>
   <a href="timeline_2025.html" >2025</a>
   <a href="timeline_2026.html" >2026</a>
-  <a href="timeline_2027.html" >2027</a>
+  <a href="timeline_2027.html" class="active">2027</a>
   <a href="timeline_2028.html" >2028</a>
 </nav>
 
@@ -142,7 +142,7 @@
       <button class="btn" id="zoomInBtn">Zoom in</button>
       <button class="btn" id="zoomOutBtn">Zoom out</button>
       <button class="btn" id="fitBtn">Fit all</button>
-      <button class="btn" id="yearBtn">This year</button>
+      <button class="btn" id="yearBtn">2027</button>
       <button class="btn" id="showAllBtn">Show all</button>
       <button class="btn" id="hideAllBtn">Hide all</button>
       <button class="btn" id="backBtn">Back to landing page</button>
@@ -533,8 +533,7 @@
   });
   document.getElementById('fitBtn').addEventListener('click',()=>timeline.fit());
   document.getElementById('yearBtn').addEventListener('click',()=>{
-    const y=new Date().getFullYear();
-    timeline.setWindow(new Date(y,0,1),new Date(y,11,31,23,59,59));
+    timeline.setWindow(new Date(2027,0,1),new Date(2027,11,31,23,59,59));
   });
 
   // ---------------------------
