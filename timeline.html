@@ -5,17 +5,14 @@
   <meta charset="utf-8" />
   <title>EMERGE – Timeline (WPs + Holidays)</title>
 
-  <!-- vis-timeline (self-hosted) -->
-  <link rel="stylesheet" href="/vendor/vis-timeline-graph2d.min.css">
-
-  <script src="/vendor/moment.min.js"></script>
-  <script src="/vendor/vis-data.min.js"></script>
-  <script src="/vendor/vis-timeline-graph2d.min.js"></script>
+  <!-- vis-timeline (self-hosted) — relative paths for GitHub Pages compatibility -->
+  <link rel="stylesheet" href="./vendor/vis-timeline-graph2d.min.css">
+  <script src="./vendor/moment.min.js"></script>
+  <script src="./vendor/vis-data.min.js"></script>
+  <script src="./vendor/vis-timeline-graph2d.min.js"></script>
 
   <style>
-    :root{
-      --weekend:#f0f2f5;
-    }
+    :root{ --weekend:#f0f2f5; }
 
     body { margin:0; padding:0; font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:#f5f7fb; color:#222; }
 
@@ -26,15 +23,9 @@
     .header-text p { margin:4px 0 0; font-size:0.9rem; opacity:0.95; }
 
     .wp-nav {
-      background:#fff;
-      padding:10px 20px;
-      margin:0 auto 20px;
-      display:flex;
-      gap:12px;
-      align-items:center;
-      border-radius:6px;
-      box-shadow:0 1px 4px rgba(0,0,0,0.15);
-      font-size:0.9rem;
+      background:#fff; padding:10px 20px; margin:0 auto 20px;
+      display:flex; gap:12px; align-items:center; border-radius:6px;
+      box-shadow:0 1px 4px rgba(0,0,0,0.15); font-size:0.9rem;
     }
     .wp-nav a { color:#004f9f; text-decoration:none; font-weight:700; padding-bottom:2px; border-bottom:2px solid transparent; }
     .wp-nav a:hover { text-decoration:underline; }
@@ -58,21 +49,43 @@
       margin-bottom:10px; padding:10px; border:1px solid #e6e8ef; border-radius:8px; background:#fbfcff;
     }
     .toggle {
-      display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid #dde2ee;
-      border-radius:999px; background:#fff; cursor:pointer; user-select:none; font-size:0.85rem; font-weight:650; color:#111;
+      display:inline-flex; align-items:center; gap:8px; padding:6px 10px;
+      border:1px solid #dde2ee; border-radius:999px; background:#fff;
+      cursor:pointer; user-select:none; font-size:0.85rem; font-weight:650; color:#111;
     }
     .toggle input { width:16px; height:16px; accent-color:#004f9f; margin:0; }
     .swatch { width:12px; height:12px; border-radius:3px; border:1px solid rgba(0,0,0,0.25); display:inline-block; }
 
-    #timeline { height:calc(100vh - 300px); min-height:520px; width:100%; border:1px solid #e6e8ef; border-radius:8px; }
+    /* Symbol filters */
+    .symbol-filters {
+      display:flex; flex-wrap:wrap; gap:8px;
+      padding:8px 10px; border:1px solid #e6e8ef; border-radius:8px;
+      background:#fbfcff; margin-bottom:10px;
+    }
+    .symbol-filter {
+      display:inline-flex; align-items:center; gap:6px;
+      padding:4px 10px; border-radius:999px;
+      border:1px solid #dde2ee; background:#fff;
+      cursor:pointer; user-select:none; font-size:0.85rem; font-weight:600;
+      transition:background 0.15s, border-color 0.15s;
+    }
+    .symbol-filter input { width:14px; height:14px; margin:0; accent-color:#004f9f; }
+    .symbol-filter.active { background:#e8f0fe; border-color:#4a7fcb; }
 
-    /* Weekend shading background items (generated in JS, only on HOLIDAYS row) */
+    /* Legend */
+    .legend {
+      display:flex; flex-wrap:wrap; gap:6px 14px;
+      font-size:0.8rem; color:#555;
+      padding:6px 10px 8px;
+      border-top:1px solid #e9ecef;
+    }
+    .legend-item { display:inline-flex; align-items:center; gap:4px; }
+
+    #timeline { height:calc(100vh - 360px); min-height:480px; width:100%; border:1px solid #e6e8ef; border-radius:8px; }
+
     .vis-item.weekend-bg{
-      background: var(--weekend) !important;
-      border: none !important;
-      border-radius: 0 !important;
-      opacity: 1 !important;
-      z-index: 0 !important;
+      background:var(--weekend)!important; border:none!important;
+      border-radius:0!important; opacity:1!important; z-index:0!important;
     }
 
     /* Modal */
@@ -80,8 +93,7 @@
       position:fixed; inset:0; background:rgba(0,0,0,0.4);
       display:flex; align-items:center; justify-content:center;
       visibility:hidden; opacity:0;
-      transition:opacity 0.2s ease, visibility 0.2s ease;
-      z-index:9999;
+      transition:opacity 0.2s ease, visibility 0.2s ease; z-index:9999;
     }
     .modal-backdrop.show { visibility:visible; opacity:1; }
     .modal {
@@ -95,9 +107,9 @@
     .modal-body p span.label { font-weight:600; }
     .modal-footer { margin-top:12px; text-align:right; }
 
-    @media (max-width:600px) {
+    @media(max-width:600px){
       .header-text h1 { font-size:1.1rem; }
-      #timeline { height:calc(100vh - 340px); min-height:420px; }
+      #timeline { height:calc(100vh - 400px); min-height:400px; }
     }
   </style>
 </head>
@@ -105,12 +117,10 @@
 <body>
 <header>
   <div class="header-container">
-    <img src="https://euemerge.eu/wp-content/uploads/2025/05/emerge_website.png"
-         alt="EMERGE Logo"
-         class="header-logo" />
+    <img src="https://euemerge.eu/wp-content/uploads/2025/05/emerge_website.png" alt="EMERGE Logo" class="header-logo" />
     <div class="header-text">
       <h1>EMERGE – Timeline (WPs + Holidays)</h1>
-      <p>Toggle Work Packages and Holidays (ICS feeds)</p>
+      <p>Toggle Work Packages · Filter by event type · Holidays (ICS feeds)</p>
     </div>
   </div>
 </header>
@@ -135,6 +145,20 @@
     </div>
 
     <div class="togglebar" id="togglebar"></div>
+
+    <!-- Symbol type filters -->
+    <div class="symbol-filters" id="symbolFilters"></div>
+
+    <!-- Legend -->
+    <div class="legend">
+      <span class="legend-item">🔷 Milestone</span>
+      <span class="legend-item">🎯 Deliverable</span>
+      <span class="legend-item">🔁 Monthly Meeting</span>
+      <span class="legend-item">📅 Meeting</span>
+      <span class="legend-item">📌 Project Event</span>
+      <span class="legend-item">🔧 Project Task</span>
+      <span class="legend-item">⚠️ Updated vs Grant Agreement</span>
+    </div>
 
     <div id="timeline"></div>
   </div>
@@ -167,79 +191,99 @@
   const ICS_BASE = 'https://pub-577ff589d29c4ebe9d2ea393dcf228f1.r2.dev/';
 
   const FEEDS = [
-    { id: 'WP1', label: 'WP1', url: ICS_BASE + 'wp1.ics', color: '#1f77b4' },
-    { id: 'WP2', label: 'WP2', url: ICS_BASE + 'wp2.ics', color: '#ff7f0e' },
-    { id: 'WP3', label: 'WP3', url: ICS_BASE + 'wp3.ics', color: '#2ca02c' },
-    { id: 'WP4', label: 'WP4', url: ICS_BASE + 'wp4.ics', color: '#d62728' },
-    { id: 'WP5', label: 'WP5', url: ICS_BASE + 'wp5.ics', color: '#9467bd' },
-    { id: 'WP6', label: 'WP6', url: ICS_BASE + 'wp6.ics', color: '#8c564b' },
-    { id: 'WP7', label: 'WP7', url: ICS_BASE + 'wp7.ics', color: '#e377c2' },
-    { id: 'WP8', label: 'WP8', url: ICS_BASE + 'wp8.ics', color: '#7f7f7f' },
-    { id: 'WP9', label: 'WP9', url: ICS_BASE + 'wp9.ics', color: '#17becf' },
-    { id: 'HOLIDAYS', label: 'Holidays', url: ICS_BASE + 'holidays.ics', color: '#111827' }
+    { id:'WP1',      label:'WP1',      url:ICS_BASE+'wp1.ics',      color:'#1f77b4' },
+    { id:'WP2',      label:'WP2',      url:ICS_BASE+'wp2.ics',      color:'#ff7f0e' },
+    { id:'WP3',      label:'WP3',      url:ICS_BASE+'wp3.ics',      color:'#2ca02c' },
+    { id:'WP4',      label:'WP4',      url:ICS_BASE+'wp4.ics',      color:'#d62728' },
+    { id:'WP5',      label:'WP5',      url:ICS_BASE+'wp5.ics',      color:'#9467bd' },
+    { id:'WP6',      label:'WP6',      url:ICS_BASE+'wp6.ics',      color:'#8c564b' },
+    { id:'WP7',      label:'WP7',      url:ICS_BASE+'wp7.ics',      color:'#e377c2' },
+    { id:'WP8',      label:'WP8',      url:ICS_BASE+'wp8.ics',      color:'#7f7f7f' },
+    { id:'WP9',      label:'WP9',      url:ICS_BASE+'wp9.ics',      color:'#17becf' },
+    { id:'HOLIDAYS', label:'Holidays', url:ICS_BASE+'holidays.ics', color:'#111827' }
   ];
 
-  const STORAGE_KEY = 'emerge_timeline_toggles_v1';
-  const INDEX_URL = 'index.html';
+  const STORAGE_KEY        = 'emerge_timeline_toggles_v1';
+  const SYMBOL_STORAGE_KEY = 'emerge_timeline_symbol_filters_v1';
+  const INDEX_URL          = 'index.html';
+  const SHOW_TIME_IN_LABELS = true;
 
-  // ============================================================
-  // OPTION: show time after title in timeline labels
-  // ============================================================
-  const SHOW_TIME_IN_LABELS = true;   // <-- set false to disable
+  // Symbol filter definitions
+  let symbolState = {};
 
+  function loadSymbolState() {
+    try {
+      const raw = localStorage.getItem(SYMBOL_STORAGE_KEY);
+      if (raw) {
+        const p = JSON.parse(raw);
+        SYMBOL_FILTERS.forEach(f => { symbolState[f.key] = typeof p[f.key]==='boolean' ? p[f.key] : f.on; });
+        return;
+      }
+    } catch(_) {}
+    SYMBOL_FILTERS.forEach(f => symbolState[f.key] = f.on);
+  }
+
+  function saveSymbolState() {
+    try { localStorage.setItem(SYMBOL_STORAGE_KEY, JSON.stringify(symbolState)); } catch(_) {}
+  }
+
+  function isVisible(ev) {
+    return symbolState[getSymbolKey(ev)] !== false;
+  }
+
+  // ---------------------------
+  // Helpers
+  // ---------------------------
   function pad2(n){ return String(n).padStart(2,'0'); }
 
   function formatTimeForLabel(start, end, allDay) {
-    if (!start || allDay) return '';
+    if (!start||allDay) return '';
     const s = `${pad2(start.getHours())}:${pad2(start.getMinutes())}`;
     if (!end) return s;
-    const e = `${pad2(end.getHours())}:${pad2(end.getMinutes())}`;
-    return `${s}–${e}`;
+    return `${s}–${pad2(end.getHours())}:${pad2(end.getMinutes())}`;
   }
 
-  // ---------------------------
-  // Return to index with current toggle state
-  // ---------------------------
-  function buildIndexUrlFromToggles() {
-    const enabled = FEEDS.map(f => f.id).filter(id => toggleState[id] === true);
-    if (enabled.length === FEEDS.length) return INDEX_URL;
-
-    const params = new URLSearchParams();
-    params.set('show', enabled.join(','));
-    return INDEX_URL + '?' + params.toString();
+  function formatDateRange(start, end, allDay) {
+    if (!start) return 'Unknown';
+    const od = { year:'numeric', month:'short', day:'numeric' };
+    const ot = { hour:'2-digit', minute:'2-digit' };
+    if (allDay) return end
+      ? start.toLocaleDateString(undefined,od)+' – '+end.toLocaleDateString(undefined,od)
+      : start.toLocaleDateString(undefined,od)+' (all day)';
+    let t = start.toLocaleDateString(undefined,od)+' '+start.toLocaleTimeString(undefined,ot);
+    if (end) t += ' – '+end.toLocaleTimeString(undefined,ot);
+    return t;
   }
 
-  function updateHomeLinkHref() {
-    const home = document.getElementById('homeLink');
-    if (home) home.href = buildIndexUrlFromToggles();
+  function hexToRgb(hex) {
+    const h=(hex||'').replace('#','').trim();
+    if(h.length===3) return {r:parseInt(h[0]+h[0],16),g:parseInt(h[1]+h[1],16),b:parseInt(h[2]+h[2],16)};
+    if(h.length===6) return {r:parseInt(h.slice(0,2),16),g:parseInt(h.slice(2,4),16),b:parseInt(h.slice(4,6),16)};
+    return {r:255,g:255,b:255};
   }
 
-  // ---------------------------
-  // Status + library checks
-  // ---------------------------
-  const statusEl = document.getElementById('status');
-  function setError(msg) { statusEl.textContent = msg; statusEl.classList.add('error'); }
-
-  if (!window.vis || !vis.DataSet || !vis.Timeline) {
-    setError('Timeline libraries failed to load. Check that /vendor/moment.min.js, /vendor/vis-data.min.js and /vendor/vis-timeline-graph2d.min.js load with HTTP 200, then review the browser console for blocked-script errors.');
-    throw new Error('vis libraries missing');
+  function relativeLuminance({r,g,b}) {
+    return 0.2126*[r,g,b].map(v=>{const x=v/255;return x<=0.03928?x/12.92:Math.pow((x+0.055)/1.055,2.4);})[0]
+          +0.7152*[r,g,b].map(v=>{const x=v/255;return x<=0.03928?x/12.92:Math.pow((x+0.055)/1.055,2.4);})[1]
+          +0.0722*[r,g,b].map(v=>{const x=v/255;return x<=0.03928?x/12.92:Math.pow((x+0.055)/1.055,2.4);})[2];
   }
 
-  // ---------------------------
-  // ICS parsing (RRULE MONTHLY expansion)
-  // ---------------------------
+  function bestTextColor(bg) {
+    return relativeLuminance(hexToRgb(bg)) < 0.45 ? '#ffffff' : '#111111';
+  }
+
+  // ============================================================
+  // SHARED ICS PARSER — RRULE MONTHLY + TZID + X-EMERGE props
+  // ============================================================
   function parseICS(icsText) {
-    const rawLines = icsText.split(/\r?\n/);
+    const rawLines = icsText.split(/?
+/);
     const lines = [];
-
-    // Unfold lines
     for (const line of rawLines) {
       if (!line) continue;
-      if (line.startsWith(' ') || line.startsWith('\t')) {
-        if (lines.length > 0) lines[lines.length - 1] += line.slice(1);
-      } else {
-        lines.push(line);
-      }
+      if (line.startsWith(' ') || line.startsWith('	')) {
+        if (lines.length) lines[lines.length-1] += line.slice(1);
+      } else lines.push(line);
     }
 
     const vevents = [];
@@ -247,221 +291,161 @@
 
     for (const line of lines) {
       if (line.startsWith('BEGIN:VEVENT')) { current = {}; continue; }
-      if (line.startsWith('END:VEVENT')) { if (current) vevents.push(current); current = null; continue; }
+      if (line.startsWith('END:VEVENT'))   { if (current) vevents.push(current); current = null; continue; }
       if (!current) continue;
 
-      const parts = line.split(':');
-      if (parts.length < 2) continue;
+      const ci = line.indexOf(':');
+      if (ci < 0) continue;
+      const keyPart = line.slice(0, ci).toUpperCase();
+      const value   = line.slice(ci + 1);
+      const baseKey = keyPart.split(';')[0];
 
-      const value = parts.slice(1).join(':');
-      const keyWithParams = parts[0];
-      const key = keyWithParams.split(';')[0].toUpperCase();
-
-      if (key === 'SUMMARY') current.summary = value;
-      if (key === 'DESCRIPTION') current.description = value.replace(/\\n/g, '\n');
-      if (key === 'LOCATION') current.location = value;
-      if (key === 'DTSTART') current.dtstart = value;
-      if (key === 'DTEND') current.dtend = value;
-      if (key === 'RRULE') current.rrule = value;
+      if (baseKey === 'SUMMARY')          current.summary     = value;
+      if (baseKey === 'DESCRIPTION')      current.description = value.replace(/\n/g, '
+');
+      if (baseKey === 'LOCATION')         current.location    = value;
+      if (baseKey === 'DTSTART')          current.dtstart     = value;
+      if (baseKey === 'DTEND')            current.dtend       = value;
+      if (baseKey === 'RRULE')            current.rrule       = value;
+      if (baseKey === 'CATEGORIES')       current.categories  = value.toUpperCase().split(',').map(s=>s.trim());
+      if (baseKey === 'X-EMERGE-SOURCE')  current.emergeSource = value.toUpperCase().trim();
+      if (baseKey === 'X-EMERGE-TYPE')    current.emergeType   = value.toUpperCase().trim();
+      if (baseKey === 'X-EMERGE-WP')      current.emergeWP     = value.toUpperCase().trim();
     }
 
-    function parseICSTime(v) {
+    function parseTime(v) {
       if (!v) return null;
-
-      // All-day date (YYYYMMDD)
-      if (v.length === 8 && !v.includes('T')) {
-        const y = parseInt(v.slice(0,4), 10);
-        const m = parseInt(v.slice(4,6), 10) - 1;
-        const d = parseInt(v.slice(6,8), 10);
-        return { date: new Date(Date.UTC(y, m, d)), allDay: true, isUTC: true };
-      }
-
-      // Date-time (YYYYMMDDTHHMMSS[Z])
-      const y = parseInt(v.slice(0,4), 10);
-      const m = parseInt(v.slice(4,6), 10) - 1;
-      const d = parseInt(v.slice(6,8), 10);
-      const hh = parseInt(v.slice(9,11) || '0', 10);
-      const mm = parseInt(v.slice(11,13) || '0', 10);
-      const ss = parseInt(v.slice(13,15) || '0', 10);
-
-      if (v.endsWith('Z')) return { date: new Date(Date.UTC(y, m, d, hh, mm, ss)), allDay: false, isUTC: true };
-      return { date: new Date(y, m, d, hh, mm, ss), allDay: false, isUTC: false };
+      if (v.length === 8 && !v.includes('T'))
+        return { date: new Date(Date.UTC(+v.slice(0,4), +v.slice(4,6)-1, +v.slice(6,8))), allDay:true };
+      const y=+v.slice(0,4), mo=+v.slice(4,6)-1, d=+v.slice(6,8);
+      const hh=+v.slice(9,11)||0, mm=+v.slice(11,13)||0, ss=+v.slice(13,15)||0;
+      if (v.endsWith('Z')) return { date: new Date(Date.UTC(y,mo,d,hh,mm,ss)), allDay:false };
+      return { date: new Date(y,mo,d,hh,mm,ss), allDay:false };
     }
 
-    function parseRRule(rruleStr) {
-      const out = {};
-      if (!rruleStr) return out;
-      rruleStr.split(';').forEach(part => {
-        const [k, v] = part.split('=');
-        if (!k || !v) return;
-        out[k.toUpperCase()] = v;
-      });
-      return out;
+    function parseRRule(s) {
+      const o={};
+      (s||'').split(';').forEach(p=>{ const [k,v]=p.split('='); if(k&&v) o[k.toUpperCase()]=v; });
+      return o;
     }
 
-    function addMonths(d, months, useUTC) {
-      const y = useUTC ? d.getUTCFullYear() : d.getFullYear();
-      const m = (useUTC ? d.getUTCMonth() : d.getMonth()) + months;
-      const day = useUTC ? d.getUTCDate() : d.getDate();
-      const hh = useUTC ? d.getUTCHours() : d.getHours();
-      const mm = useUTC ? d.getUTCMinutes() : d.getMinutes();
-      const ss = useUTC ? d.getUTCSeconds() : d.getSeconds();
-      if (useUTC) return new Date(Date.UTC(y, m, day, hh, mm, ss));
-      return new Date(y, m, day, hh, mm, ss);
+    function addMonths(d, n, utc) {
+      const y=(utc?d.getUTCFullYear():d.getFullYear()), m=(utc?d.getUTCMonth():d.getMonth())+n;
+      const day=utc?d.getUTCDate():d.getDate(), hh=utc?d.getUTCHours():d.getHours();
+      const mm=utc?d.getUTCMinutes():d.getMinutes(), ss=utc?d.getUTCSeconds():d.getSeconds();
+      return utc ? new Date(Date.UTC(y,m,day,hh,mm,ss)) : new Date(y,m,day,hh,mm,ss);
     }
 
     const events = [];
 
     for (const ev of vevents) {
-      const sp = parseICSTime(ev.dtstart);
-      const ep = parseICSTime(ev.dtend);
-      if (!sp || !sp.date) continue;
+      const sp = parseTime(ev.dtstart);
+      const ep = parseTime(ev.dtend);
+      if (!sp) continue;
 
-      const baseTitle = ev.summary || '(no title)';
-      const baseAllDay = !!sp.allDay;
-      const baseDesc = ev.description || '';
-      const baseLoc  = ev.location || '';
+      const base = {
+        title:        ev.summary || '(no title)',
+        allDay:       sp.allDay,
+        description:  ev.description || '',
+        location:     ev.location || '',
+        emergeSource: ev.emergeSource || '',
+        emergeType:   ev.emergeType   || '',
+        emergeWP:     ev.emergeWP     || '',
+        categories:   ev.categories   || []
+      };
 
-      const start0 = sp.date;
-      const end0 = (ep && ep.date) ? ep.date : null;
-      const useUTC = !!sp.isUTC;
-
-      // No RRULE -> single
-      if (!ev.rrule) {
-        events.push({
-          title: baseTitle,
-          start: start0,
-          end: end0,
-          allDay: baseAllDay,
-          description: baseDesc,
-          location: baseLoc
-        });
-        continue;
-      }
+      if (!ev.rrule) { events.push({...base, start:sp.date, end:ep?ep.date:null}); continue; }
 
       const rule = parseRRule(ev.rrule);
-      const freq = (rule.FREQ || '').toUpperCase();
-      if (freq !== 'MONTHLY') {
-        // unsupported -> include base only
-        events.push({
-          title: baseTitle,
-          start: start0,
-          end: end0,
-          allDay: baseAllDay,
-          description: baseDesc,
-          location: baseLoc
-        });
-        continue;
+      if ((rule.FREQ||'').toUpperCase() !== 'MONTHLY') {
+        events.push({...base, start:sp.date, end:ep?ep.date:null}); continue;
       }
 
-      const untilParsed = rule.UNTIL ? parseICSTime(rule.UNTIL) : null;
-      const until = untilParsed && untilParsed.date ? untilParsed.date : null;
+      const untilP = rule.UNTIL ? parseTime(rule.UNTIL) : null;
+      const until  = untilP ? untilP.date : null;
+      const utc    = ev.dtstart.endsWith('Z');
+      const durMs  = (ep && !base.allDay) ? ep.date - sp.date : null;
 
-      const MAX_OCCURRENCES = 240;
-      const durMs = (end0 && !baseAllDay) ? (end0.getTime() - start0.getTime()) : null;
-
-      for (let i = 0; i < MAX_OCCURRENCES; i++) {
-        const occStart = addMonths(start0, i, useUTC);
-        if (until && occStart.getTime() > until.getTime()) break;
-
-        let occEnd = null;
-        if (baseAllDay) {
-          occEnd = end0 ? addMonths(end0, i, useUTC) : null;
-        } else if (durMs !== null) {
-          occEnd = new Date(occStart.getTime() + durMs);
-        }
-
-        events.push({
-          title: baseTitle,
-          start: occStart,
-          end: occEnd,
-          allDay: baseAllDay,
-          description: baseDesc,
-          location: baseLoc
-        });
+      for (let i=0; i<240; i++) {
+        const oStart = addMonths(sp.date, i, utc);
+        if (until && oStart > until) break;
+        const oEnd = base.allDay
+          ? (ep ? addMonths(ep.date, i, utc) : null)
+          : (durMs !== null ? new Date(oStart.getTime()+durMs) : null);
+        events.push({...base, start:oStart, end:oEnd});
       }
     }
 
-    return events;
+    return events.filter(e => e.start);
   }
 
-  function formatDateRange(start, end, allDay) {
-    if (!start) return 'Unknown';
-    const optionsDate = { year: 'numeric', month: 'short', day: 'numeric' };
-    const optionsTime = { hour: '2-digit', minute: '2-digit' };
-
-    if (allDay) {
-      if (end) return start.toLocaleDateString(undefined, optionsDate) + ' – ' + end.toLocaleDateString(undefined, optionsDate);
-      return start.toLocaleDateString(undefined, optionsDate) + ' (all day)';
-    }
-
-    let text = start.toLocaleDateString(undefined, optionsDate) + ' ' + start.toLocaleTimeString(undefined, optionsTime);
-    if (end) text += ' – ' + end.toLocaleTimeString(undefined, optionsTime);
-    return text;
+  // ============================================================
+  // SYMBOL FILTERS — keyed by X-EMERGE-TYPE value
+  // ============================================================
+  // Map emergeType → symbol key (robust — uses X-EMERGE-TYPE, falls back to emoji prefix)
+  function getSymbolKey(ev) {
+    if (ev.emergeType) return ev.emergeType;
+    // fallback: detect from title emoji prefix
+    const t = ev.title || '';
+    if (t.startsWith('🔷')) return 'MILESTONE';
+    if (t.startsWith('🎯')) return 'DELIVERABLE';
+    if (t.startsWith('🔁')) return 'MONTHLY-MEETING';
+    if (t.startsWith('📅')) return 'MEETING';
+    if (t.startsWith('📌')) return 'PROJECT-EVENT';
+    if (t.startsWith('🔧')) return 'PROJECT-TASK';
+    return 'GENERAL';
   }
+
 
   // ---------------------------
-  // Contrast helper
+  // Toggle / URL state
   // ---------------------------
-  function hexToRgb(hex) {
-    const h = (hex || '').replace('#','').trim();
-    if (h.length === 3) return { r: parseInt(h[0]+h[0],16), g: parseInt(h[1]+h[1],16), b: parseInt(h[2]+h[2],16) };
-    if (h.length === 6) return { r: parseInt(h.slice(0,2),16), g: parseInt(h.slice(2,4),16), b: parseInt(h.slice(4,6),16) };
-    return { r:255, g:255, b:255 };
+  function buildIndexUrlFromToggles() {
+    const enabled = FEEDS.map(f=>f.id).filter(id=>toggleState[id]===true);
+    if (enabled.length===FEEDS.length) return INDEX_URL;
+    const p = new URLSearchParams(); p.set('show',enabled.join(','));
+    return INDEX_URL+'?'+p.toString();
   }
 
-  function relativeLuminance({r,g,b}) {
-    const srgb = [r,g,b].map(v => {
-      const x = v / 255;
-      return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4);
-    });
-    return 0.2126 * srgb[0] + 0.7152 * srgb[1] + 0.0722 * srgb[2];
+  function updateHomeLinkHref() {
+    const home = document.getElementById('homeLink');
+    if (home) home.href = buildIndexUrlFromToggles();
   }
 
-  function bestTextColor(bgHex) {
-    return relativeLuminance(hexToRgb(bgHex)) < 0.45 ? '#ffffff' : '#111111';
+  const statusEl = document.getElementById('status');
+  function setError(msg){ statusEl.textContent=msg; statusEl.classList.add('error'); }
+
+  if (!window.vis||!vis.DataSet||!vis.Timeline) {
+    setError('Timeline libraries failed to load. Check ./vendor/ files load with HTTP 200.');
+    throw new Error('vis libraries missing');
   }
 
-  // ---------------------------
-  // URL presets & persisted toggles
-  // ---------------------------
   function getUrlParams() {
     const p = new URLSearchParams(window.location.search);
-    const show = (p.get('show') || '').split(',').map(s => s.trim()).filter(Boolean);
-    const hide = (p.get('hide') || '').split(',').map(s => s.trim()).filter(Boolean);
-    return { show, hide };
+    return {
+      show:(p.get('show')||'').split(',').map(s=>s.trim()).filter(Boolean),
+      hide:(p.get('hide')||'').split(',').map(s=>s.trim()).filter(Boolean)
+    };
   }
 
   function loadToggleState() {
-    const base = Object.fromEntries(FEEDS.map(f => [f.id, true]));
-
+    const base = Object.fromEntries(FEEDS.map(f=>[f.id,true]));
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        for (const k of Object.keys(base)) {
-          if (typeof parsed[k] === 'boolean') base[k] = parsed[k];
-        }
-      }
-    } catch (_) {}
-
-    const { show, hide } = getUrlParams();
-    if (show.length > 0) {
-      for (const k of Object.keys(base)) base[k] = false;
-      show.forEach(id => { if (id in base) base[id] = true; });
-    }
-    if (hide.length > 0) hide.forEach(id => { if (id in base) base[id] = false; });
-
+      if (raw) { const p=JSON.parse(raw); for(const k of Object.keys(base)) if(typeof p[k]==='boolean') base[k]=p[k]; }
+    } catch(_){}
+    const {show,hide} = getUrlParams();
+    if (show.length>0) { for(const k of Object.keys(base)) base[k]=false; show.forEach(id=>{if(id in base)base[id]=true;}); }
+    if (hide.length>0) hide.forEach(id=>{if(id in base)base[id]=false;});
     return base;
   }
 
-  function saveToggleState(state) {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_) {}
-  }
+  function saveToggleState(state) { try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state));}catch(_){} }
 
   const toggleState = loadToggleState();
+  loadSymbolState();
 
-  document.getElementById('backBtn').addEventListener('click', () => {
+  document.getElementById('backBtn').addEventListener('click',()=>{
     saveToggleState(toggleState);
     window.location.href = buildIndexUrlFromToggles();
   });
@@ -470,281 +454,210 @@
   // Timeline setup
   // ---------------------------
   const container = document.getElementById('timeline');
-  const groups = new vis.DataSet(FEEDS.map(f => ({ id: f.id, content: f.label, visible: true })));
-  const items = new vis.DataSet();
+  const groups = new vis.DataSet(FEEDS.map(f=>({id:f.id,content:f.label,visible:true})));
+  const items  = new vis.DataSet();
 
   const timeline = new vis.Timeline(container, items, groups, {
-    stack: true,
-    horizontalScroll: true,
-    zoomKey: 'ctrlKey',
-    orientation: { axis: 'top' },
-    margin: { item: 10, axis: 10 },
-    showMajorLabels: true,
-    showMinorLabels: true
+    stack:true, horizontalScroll:true, zoomKey:'ctrlKey',
+    orientation:{axis:'top'}, margin:{item:10,axis:10},
+    showMajorLabels:true, showMinorLabels:true
   });
 
-  function applyGroupVisibility() {
-    FEEDS.forEach(f => groups.update({ id: f.id, visible: !!toggleState[f.id] }));
-  }
+  function applyGroupVisibility() { FEEDS.forEach(f=>groups.update({id:f.id,visible:!!toggleState[f.id]})); }
 
   // ---------------------------
-  // Weekend shading ONLY ON HOLIDAYS ROW, only when zoomed in
+  // Weekend shading
   // ---------------------------
-  const WEEKEND_COLOR = getComputedStyle(document.documentElement)
-    .getPropertyValue('--weekend').trim() || '#f0f2f5';
+  const WEEKEND_COLOR = getComputedStyle(document.documentElement).getPropertyValue('--weekend').trim()||'#f0f2f5';
+  const WEEKEND_MAX_DAYS = 90;
 
-  const WEEKEND_MAX_DAYS_VISIBLE = 90; // show only when <= 90 days are visible
-  const WEEKEND_GROUP_ID = 'HOLIDAYS'; // shade weekends on Holidays row only
+  function startOfDay(d){ return new Date(d.getFullYear(),d.getMonth(),d.getDate()); }
+  function daysBetween(a,b){ return Math.abs(b-a)/(1000*60*60*24); }
 
-  function startOfDay(d) {
-    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  }
-
-  function daysBetween(a, b) {
-    return Math.abs(b - a) / (1000 * 60 * 60 * 24);
-  }
-
-  function buildWeekendBackgroundItems(rangeStart, rangeEnd) {
-    const out = [];
-    const start = startOfDay(rangeStart);
-    const end = startOfDay(rangeEnd);
-
-    start.setDate(start.getDate() - 7);
-    end.setDate(end.getDate() + 7);
-
-    const first = new Date(start);
-    const day = first.getDay();                // 0 Sun ... 6 Sat
-    const daysUntilSat = (6 - day + 7) % 7;
-    first.setDate(first.getDate() + daysUntilSat);
-
-    let i = 0;
-    for (let d = new Date(first); d < end; d.setDate(d.getDate() + 7)) {
-      const satStart = new Date(d);
-      const monStart = new Date(d);
-      monStart.setDate(monStart.getDate() + 2);
-
-      out.push({
-        id: `weekend-bg-${i++}`,
-        group: WEEKEND_GROUP_ID,
-        start: satStart,
-        end: monStart,
-        type: 'background',
-        className: 'weekend-bg',
-        style: `background-color:${WEEKEND_COLOR};border:none;`
-      });
+  function buildWeekendItems(rs,re) {
+    const out=[]; const start=startOfDay(rs); const end=startOfDay(re);
+    start.setDate(start.getDate()-7); end.setDate(end.getDate()+7);
+    const first=new Date(start); const dOff=(6-first.getDay()+7)%7; first.setDate(first.getDate()+dOff);
+    let i=0;
+    for(let d=new Date(first);d<end;d.setDate(d.getDate()+7)){
+      const s=new Date(d),e=new Date(d); e.setDate(e.getDate()+2);
+      out.push({id:`weekend-bg-${i++}`,group:'HOLIDAYS',start:s,end:e,type:'background',
+        className:'weekend-bg',style:`background-color:${WEEKEND_COLOR};border:none;`});
     }
     return out;
   }
 
-  function removeWeekendItems() {
-    const old = items.get({
-      filter: (it) => typeof it.id === 'string' && it.id.startsWith('weekend-bg-')
-    });
-    if (old.length) items.remove(old.map(o => o.id));
+  function removeWeekendItems(){ const old=items.get({filter:it=>typeof it.id==='string'&&it.id.startsWith('weekend-bg-')}); if(old.length) items.remove(old.map(o=>o.id)); }
+
+  function refreshWeekendShading(){
+    const w=timeline.getWindow();
+    if(daysBetween(w.start,w.end)>WEEKEND_MAX_DAYS){ removeWeekendItems(); timeline.redraw(); return; }
+    removeWeekendItems(); items.add(buildWeekendItems(w.start,w.end)); timeline.redraw();
   }
 
-  function refreshWeekendShading() {
-    const w = timeline.getWindow();
-    const spanDays = daysBetween(w.start, w.end);
+  timeline.on('rangechange',refreshWeekendShading);
+  timeline.on('rangechanged',refreshWeekendShading);
 
-    if (spanDays > WEEKEND_MAX_DAYS_VISIBLE) {
-      removeWeekendItems();
-      timeline.redraw();
-      return;
+  // ---------------------------
+  // Symbol filter UI
+  // ---------------------------
+  function renderSymbolFilters() {
+    const el = document.getElementById('symbolFilters');
+    el.innerHTML = '';
+    for (const sf of SYMBOL_FILTERS) {
+      const label = document.createElement('label');
+      label.className = 'symbol-filter'+(symbolState[sf.key]?' active':'');
+      const cb = document.createElement('input');
+      cb.type='checkbox'; cb.checked=!!symbolState[sf.key]; cb.dataset.symbolKey=sf.key;
+      label.appendChild(cb);
+      label.appendChild(document.createTextNode(` ${sf.emoji} ${sf.label}`));
+      el.appendChild(label);
     }
-
-    removeWeekendItems();
-    items.add(buildWeekendBackgroundItems(w.start, w.end));
-    timeline.redraw();
   }
 
-  timeline.on('rangechange', refreshWeekendShading);
-  timeline.on('rangechanged', refreshWeekendShading);
-
+  // ---------------------------
   // Controls
-  document.getElementById('zoomInBtn').addEventListener('click', () => {
-    const range = timeline.getWindow();
-    const interval = range.end - range.start;
-    timeline.setWindow({
-      start: new Date(range.start.valueOf() + interval * 0.2),
-      end: new Date(range.end.valueOf() - interval * 0.2)
-    });
+  // ---------------------------
+  document.getElementById('zoomInBtn').addEventListener('click',()=>{
+    const r=timeline.getWindow(),i=r.end-r.start;
+    timeline.setWindow({start:new Date(r.start.valueOf()+i*0.2),end:new Date(r.end.valueOf()-i*0.2)});
   });
-
-  document.getElementById('zoomOutBtn').addEventListener('click', () => {
-    const range = timeline.getWindow();
-    const interval = range.end - range.start;
-    timeline.setWindow({
-      start: new Date(range.start.valueOf() - interval * 0.25),
-      end: new Date(range.end.valueOf() + interval * 0.25)
-    });
+  document.getElementById('zoomOutBtn').addEventListener('click',()=>{
+    const r=timeline.getWindow(),i=r.end-r.start;
+    timeline.setWindow({start:new Date(r.start.valueOf()-i*0.25),end:new Date(r.end.valueOf()+i*0.25)});
   });
-
-  document.getElementById('fitBtn').addEventListener('click', () => timeline.fit());
-
-  document.getElementById('yearBtn').addEventListener('click', () => {
-    const now = new Date();
-    const y = now.getFullYear();
-    timeline.setWindow(new Date(y, 0, 1), new Date(y, 11, 31, 23, 59, 59));
+  document.getElementById('fitBtn').addEventListener('click',()=>timeline.fit());
+  document.getElementById('yearBtn').addEventListener('click',()=>{
+    const y=new Date().getFullYear();
+    timeline.setWindow(new Date(y,0,1),new Date(y,11,31,23,59,59));
   });
 
   // ---------------------------
-  // Toggle UI
+  // WP Toggle UI
   // ---------------------------
   const togglebar = document.getElementById('togglebar');
 
   function renderToggles() {
-    togglebar.innerHTML = '';
+    togglebar.innerHTML='';
     for (const feed of FEEDS) {
-      const label = document.createElement('label');
-      label.className = 'toggle';
-
-      const cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.checked = !!toggleState[feed.id];
-      cb.addEventListener('change', () => {
-        toggleState[feed.id] = cb.checked;
-        saveToggleState(toggleState);
-        applyGroupVisibility();
-        updateHomeLinkHref();
-        setTimeout(() => timeline.redraw(), 0);
+      const label=document.createElement('label'); label.className='toggle';
+      const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=!!toggleState[feed.id];
+      cb.addEventListener('change',()=>{
+        toggleState[feed.id]=cb.checked; saveToggleState(toggleState);
+        applyGroupVisibility(); updateHomeLinkHref(); setTimeout(()=>timeline.redraw(),0);
       });
-
-      const swatch = document.createElement('span');
-      swatch.className = 'swatch';
-      swatch.style.background = feed.color;
-
-      const text = document.createElement('span');
-      text.textContent = feed.label;
-
-      label.appendChild(cb);
-      label.appendChild(swatch);
-      label.appendChild(text);
+      const sw=document.createElement('span'); sw.className='swatch'; sw.style.background=feed.color;
+      const txt=document.createElement('span'); txt.textContent=feed.label;
+      label.appendChild(cb); label.appendChild(sw); label.appendChild(txt);
       togglebar.appendChild(label);
     }
   }
 
-  document.getElementById('showAllBtn').addEventListener('click', () => {
-    FEEDS.forEach(f => toggleState[f.id] = true);
-    saveToggleState(toggleState);
-    renderToggles();
-    applyGroupVisibility();
-    updateHomeLinkHref();
+  document.getElementById('showAllBtn').addEventListener('click',()=>{
+    FEEDS.forEach(f=>toggleState[f.id]=true); saveToggleState(toggleState);
+    renderToggles(); applyGroupVisibility(); updateHomeLinkHref();
   });
-
-  document.getElementById('hideAllBtn').addEventListener('click', () => {
-    FEEDS.forEach(f => toggleState[f.id] = false);
-    saveToggleState(toggleState);
-    renderToggles();
-    applyGroupVisibility();
-    updateHomeLinkHref();
+  document.getElementById('hideAllBtn').addEventListener('click',()=>{
+    FEEDS.forEach(f=>toggleState[f.id]=false); saveToggleState(toggleState);
+    renderToggles(); applyGroupVisibility(); updateHomeLinkHref();
   });
 
   renderToggles();
+  renderSymbolFilters();
   applyGroupVisibility();
   updateHomeLinkHref();
+
+  // Symbol filter change
+  document.getElementById('symbolFilters').addEventListener('change', async (e) => {
+    if (!e.target.dataset.symbolKey) return;
+    symbolState[e.target.dataset.symbolKey] = e.target.checked;
+    const label = e.target.closest('.symbol-filter');
+    if (label) label.classList.toggle('active', e.target.checked);
+    saveSymbolState();
+    await reloadTimeline();
+  });
 
   // ---------------------------
   // Modal
   // ---------------------------
-  const modalBackdrop = document.getElementById('eventModalBackdrop');
-  const modalTitle = document.getElementById('modalTitle');
-  const modalWhen = document.getElementById('modalWhen');
-  const modalSource = document.getElementById('modalSource');
-  const modalLocation = document.getElementById('modalLocation');
-  const modalDescription = document.getElementById('modalDescription');
-  const modalCloseBtn = document.getElementById('modalCloseBtn');
-  const modalOkBtn = document.getElementById('modalOkBtn');
+  const modalBackdrop   = document.getElementById('eventModalBackdrop');
+  const modalTitle      = document.getElementById('modalTitle');
+  const modalWhen       = document.getElementById('modalWhen');
+  const modalSource     = document.getElementById('modalSource');
+  const modalLocation   = document.getElementById('modalLocation');
+  const modalDescription= document.getElementById('modalDescription');
 
-  function closeModal() { modalBackdrop.classList.remove('show'); }
-  modalCloseBtn.addEventListener('click', closeModal);
-  modalOkBtn.addEventListener('click', closeModal);
-  modalBackdrop.addEventListener('click', (e) => { if (e.target === modalBackdrop) closeModal(); });
+  function closeModal(){ modalBackdrop.classList.remove('show'); }
+  document.getElementById('modalCloseBtn').addEventListener('click',closeModal);
+  document.getElementById('modalOkBtn').addEventListener('click',closeModal);
+  modalBackdrop.addEventListener('click',e=>{ if(e.target===modalBackdrop) closeModal(); });
 
-  timeline.on('select', function(props) {
-    if (!props.items || props.items.length === 0) return;
-    const id = props.items[0];
-    const item = items.get(id);
-    if (!item) return;
-
-    modalTitle.textContent = item.title || item.content || '(no title)';
-    modalWhen.textContent = formatDateRange(item.start, item.end, item.allDay);
-    modalSource.textContent = item.group || '—';
-    modalLocation.textContent = item.location || 'Not specified';
-    modalDescription.textContent = item.description || 'No description provided.';
+  timeline.on('select',props=>{
+    if(!props.items||!props.items.length) return;
+    const item=items.get(props.items[0]);
+    if(!item) return;
+    modalTitle.textContent       = item.title||item.content||'(no title)';
+    modalWhen.textContent        = formatDateRange(item.start,item.end,item.allDay);
+    modalSource.textContent      = item.group||'—';
+    modalLocation.textContent    = item.location||'Not specified';
+    modalDescription.textContent = item.description||'No description provided.';
+    // Show type tag if available
+    modalSource.textContent = item.group + (item.emergeType ? ' · ' + item.emergeType : '');
     modalBackdrop.classList.add('show');
   });
 
   // ---------------------------
-  // Load feeds
+  // Raw event cache
   // ---------------------------
-  async function loadFeed(feed) {
-    const resp = await fetch(feed.url, { cache: 'no-store' });
-    if (!resp.ok) throw new Error(feed.id + ' HTTP ' + resp.status);
+  const rawCache = new Map(); // feedId -> parsed events
 
-    const text = await resp.text();
-    const evs = parseICS(text);
+  async function loadFeedRaw(feed) {
+    if (rawCache.has(feed.id)) return rawCache.get(feed.id);
+    const resp = await fetch(feed.url,{cache:'no-store'});
+    if (!resp.ok) throw new Error(feed.id+' HTTP '+resp.status);
+    const evs = parseICS(await resp.text());
+    rawCache.set(feed.id, evs);
+    return evs;
+  }
 
-    const bg = feed.color;
-    const fg = bestTextColor(bg);
-    const style = `background-color:${bg};border-color:${bg};color:${fg};`;
-
-    return evs.map((ev, idx) => {
-      const hasEnd = !!ev.end;
-
-      const t = SHOW_TIME_IN_LABELS ? formatTimeForLabel(ev.start, ev.end, ev.allDay) : '';
-      const label = (SHOW_TIME_IN_LABELS && t) ? `${ev.title} ${t}` : ev.title;
-
+  function buildVisItems(feed, evs) {
+    const bg=feed.color, fg=bestTextColor(bg);
+    const style=`background-color:${bg};border-color:${bg};color:${fg};`;
+    const filtered = evs.filter(ev => isVisible(ev));
+    return filtered.map((ev,idx)=>{
+      const t = SHOW_TIME_IN_LABELS ? formatTimeForLabel(ev.start,ev.end,ev.allDay) : '';
+      const label = (SHOW_TIME_IN_LABELS&&t) ? `${ev.title} ${t}` : ev.title;
       return {
-        id: feed.id.toLowerCase() + '-' + idx,
-        group: feed.id,
-        content: label,     // <<< time after title (option-controlled)
-        title: ev.title,
-        start: ev.start,
-        end: hasEnd ? ev.end : undefined,
-        type: hasEnd ? 'range' : 'point',
-        allDay: ev.allDay,
-        description: ev.description,
-        location: ev.location,
-        style
+        id: feed.id.toLowerCase()+'-'+idx,
+        group:feed.id, content:label, title:ev.title,
+        start:ev.start, end:ev.end||undefined,
+        type:ev.end?'range':'point',
+        allDay:ev.allDay, description:ev.description, location:ev.location,
+        emergeType:ev.emergeType, emergeSource:ev.emergeSource, emergeWP:ev.emergeWP, style
       };
     });
   }
 
-  async function loadTimeline() {
-    statusEl.textContent = 'Loading timeline from ICS feeds…';
-    statusEl.classList.remove('error');
-
-    const results = [];
-    const errors = [];
-
+  async function reloadTimeline() {
+    statusEl.textContent='Refreshing…'; statusEl.classList.remove('error');
+    items.clear();
+    const errors=[], counts=[];
     for (const feed of FEEDS) {
       try {
-        const itemsForFeed = await loadFeed(feed);
-        results.push({ id: feed.id, count: itemsForFeed.length, items: itemsForFeed });
-      } catch (e) {
-        console.error('Feed load failed:', feed.id, e);
-        errors.push(feed.id + ': ' + (e && e.message ? e.message : e));
-      }
+        const evs = await loadFeedRaw(feed);
+        const vis  = buildVisItems(feed, evs);
+        vis.forEach(it=>items.add(it));
+        counts.push(`${feed.label}(${vis.length})`);
+      } catch(e) { console.error(e); errors.push(feed.id+': '+(e.message||e)); }
     }
-
-    items.clear();
-    for (const r of results) for (const it of r.items) items.add(it);
-
-    const total = results.reduce((sum, r) => sum + r.count, 0);
-
-    if (errors.length > 0) {
-      setError('Loaded ' + total + ' items, but some feeds failed: ' + errors.join(' | '));
-    } else {
-      statusEl.textContent = 'Timeline loaded (' + total + ' items across ' + FEEDS.length + ' feeds).';
-    }
-
-    if (total > 0) timeline.fit();
-
-    setTimeout(refreshWeekendShading, 0);
+    const total = items.length;
+    if (errors.length) setError(`Loaded ${total} items, some feeds failed: ${errors.join(' | ')}`);
+    else statusEl.textContent=`Timeline loaded (${total} items). ${counts.join(' + ')}`;
+    if (total>0) timeline.fit();
+    setTimeout(refreshWeekendShading,0);
   }
 
-  loadTimeline();
+  reloadTimeline();
 </script>
 </body>
 </html>
