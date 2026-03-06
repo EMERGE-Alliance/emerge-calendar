@@ -183,6 +183,7 @@
     <div id="timeline"></div>
   </div>
 </main>
+<div class="brand-footer"><img src="footer.png" alt="EMERGE footer" /></div>
 
 <!-- Event detail modal -->
 <div id="eventModalBackdrop" class="modal-backdrop">
@@ -196,7 +197,7 @@
       <p><span class="label">Source:</span> <span id="modalSource"></span></p>
       <p><span class="label">Location:</span> <span id="modalLocation"></span></p>
       <p><span class="label">Description:</span></p>
-      <p id="modalDescription"></p>
+      <div id="modalDescription" style="font-size:0.9rem;margin:4px 0;line-height:1.6;"></div>
     </div>
     <div class="modal-footer">
       <button class="btn" id="modalOkBtn">Close</button>
@@ -220,7 +221,7 @@
     { id:'WP7',      label:'WP7',      url:ICS_BASE+'wp7.ics',      color:'#e377c2' },
     { id:'WP8',      label:'WP8',      url:ICS_BASE+'wp8.ics',      color:'#7f7f7f' },
     { id:'WP9',      label:'WP9',      url:ICS_BASE+'wp9.ics',      color:'#17becf' },
-    { id:'HOLIDAYS', label:'Holidays', url:ICS_BASE+'holidays.ics', color:'#111827' }
+    { id:'HOLIDAYS', label:'Holidays', url:ICS_BASE+'holidays.ics', color:'#111827', defaultOff:true }
   ];
 
   const STORAGE_KEY        = 'emerge_timeline_toggles_v1';
@@ -463,7 +464,7 @@
   }
 
   function loadToggleState() {
-    const base = Object.fromEntries(FEEDS.map(f=>[f.id,true]));
+    const base = Object.fromEntries(FEEDS.map(f=>[f.id, f.defaultOff ? false : true]));
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) { const p=JSON.parse(raw); for(const k of Object.keys(base)) if(typeof p[k]==='boolean') base[k]=p[k]; }
@@ -633,7 +634,11 @@
     modalWhen.textContent        = formatDateRange(item.start,item.end,item.allDay);
     modalSource.textContent      = item.group||'—';
     modalLocation.textContent    = item.location||'Not specified';
-    modalDescription.textContent = item.description||'No description provided.';
+    const rawDesc = item.description||'No description provided.';
+    modalDescription.innerHTML = rawDesc
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+      .replace(/\n/g,'<br>');
     // Show type tag if available
     modalSource.textContent = item.group + (item.emergeType ? ' · ' + item.emergeType : '');
     modalBackdrop.classList.add('show');
@@ -685,13 +690,12 @@
     }
     const total = items.length;
     if (errors.length) setError(`Loaded ${total} items, some feeds failed: ${errors.join(' | ')}`);
-    else statusEl.textContent=`Timeline loaded (${total} items). ${counts.join(' + ')}`;
-    if (total>0) timeline.fit();
+    else statusEl.textContent='';
+    if (total>0) { timeline.setWindow(new Date(2028,0,1), new Date(2028,11,31,23,59,59), {animation:false}); }
     setTimeout(refreshWeekendShading,0);
   }
 
   reloadTimeline();
 </script>
-<div class="brand-footer"><img src="footer.png" alt="EMERGE footer" /></div>
 </body>
 </html>
