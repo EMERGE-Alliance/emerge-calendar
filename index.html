@@ -27,13 +27,23 @@
     }
 
     header{
-      background: var(--emerge-blue);
       color:#fff;
       padding:16px 24px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      background-image: url('header.png');
+      background-size: cover;
+      background-position: center top;
+      position: relative;
+    }
+    /* Dark overlay so white text stays readable over the light parts of the header image */
+    header::before{
+      content:'';
+      position:absolute; inset:0;
+      background: rgba(0,0,0,0.18);
+      pointer-events:none;
     }
 
-    .header-container{ display:flex; align-items:center; gap:16px; }
+    .header-container{ display:flex; align-items:center; gap:16px; position:relative; z-index:1; }
     .header-logo{ background:#ffffff; padding:6px; border-radius:6px; height:60px; }
     .header-text h1{ margin:0; font-size:1.3rem; }
     .header-text p{ margin:4px 0 0; font-size:0.9rem; opacity:0.95; }
@@ -232,7 +242,6 @@
 </head>
 
 <body>
-<div class="brand-header"><img src="header.png" alt="EMERGE header" /></div>
 <header>
   <div class="header-container">
     <img src="https://euemerge.eu/wp-content/uploads/2025/05/emerge_website.png" alt="EMERGE Logo" class="header-logo" />
