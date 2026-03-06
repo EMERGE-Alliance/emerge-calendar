@@ -172,6 +172,8 @@
     #eventPanel .ep-desc{ font-size:0.9rem; color:#374151; line-height:1.6; }
     #eventPanel .ep-desc p{ margin:0 0 8px; }
     #eventPanel .ep-desc p:last-child{ margin:0; }
+    #eventPanel .ep-para{ margin:0 0 8px; }
+    #eventPanel .ep-para:last-child{ margin:0; }
     #eventPanel .ep-nodesc{ font-size:0.85rem; color:#9ca3af; font-style:italic; }
     #eventPanel .ep-occur{
       background:#f0f4ff; border:1px solid #c7d2fe; border-radius:6px;
@@ -498,9 +500,18 @@
 
   function gridEventContent(arg) {
     const isGrid = arg.view.type.startsWith('dayGrid') || arg.view.type.startsWith('multiMonth');
-    if (!isGrid || !SHOW_TIME_IN_GRID) return true;
+    const ev = arg.event;
+    const type = ev.extendedProps?.emergeType || 'GENERAL';
+    // Prefix emoji for GENERAL/untagged if title has no emoji already
+    const title = ev.title;
+    const needsPrefix = type === 'GENERAL' && !['🔷','🎯','🔁','📅','📌','🔧','📄'].some(e => title.startsWith(e));
+    const displayTitle = needsPrefix ? '📄 ' + title : title;
+    if (!isGrid || !SHOW_TIME_IN_GRID) {
+      // In list view — inject prefix into the rendered element via eventDidMount
+      return true;
+    }
     const time = arg.timeText ? `<span class="fc-event-time-inline"> ${escapeHtml(arg.timeText)}</span>` : '';
-    return { html: `<div class="fc-event-title">${escapeHtml(arg.event.title)}${time}</div>` };
+    return { html: `<div class="fc-event-title">${escapeHtml(displayTitle)}${time}</div>` };
   }
 
   // ============================================================
@@ -584,20 +595,19 @@
 
     function renderDescription(text) {
       if (!text) return '';
-      // Strip leading ✅ Completed line
-      let cleaned = text.replace(/^✅\s*Completed\n\n?/, '');
-      // Strip OCCUR: line (internal metadata, shown separately in panel)
-      cleaned = cleaned.replace(/^OCCUR:[^\n]*\n?/, '');
-      // Strip REPLACES: line
-      cleaned = cleaned.replace(/^REPLACES:[^\n]*\n?/, '');
-      // Strip START:/END: lines
-      cleaned = cleaned.replace(/^START:[^\n]*\n?/m, '').replace(/^END:[^\n]*\n?/m, '');
+      // Strip metadata lines wherever they appear (not just at start)
+      let cleaned = text
+        .replace(/✅\s*Completed\n?/g, '')
+        .replace(/^OCCUR:[^\n]*\n?/mg, '')
+        .replace(/^REPLACES:[^\n]*\n?/mg, '')
+        .replace(/^START:[^\n]*/mg, '')
+        .replace(/^END:[^\n]*/mg, '');
       if (!cleaned.trim()) return '';
-      // Split on single or double newlines — preserve all paragraphs
+      // Split on newlines, filter blank lines, render each as paragraph
       const paras = cleaned.split(/\n/).filter(p => p.trim());
       return paras.map(p => {
         const html = escapeHtml(p).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-        return `<p class="tt-para">${html}</p>`;
+        return `<p class="ep-para">${html}</p>`;
       }).join('');
     }
 
@@ -765,8 +775,16 @@
       // Simple hover tooltip — title + "click for details"
       eventDidMount: function(info) {
         const el    = info.el;
-        const title = info.event.title;
-        el.addEventListener('mouseenter', e => showTooltip(e, title));
+        const ev    = info.event;
+        const title = ev.title;
+        const type  = ev.extendedProps?.emergeType || 'GENERAL';
+        // In list view, prepend 📄 for untagged events
+        const needsPrefix = type === 'GENERAL' && !['🔷','🎯','🔁','📅','📌','🔧','📄'].some(e => title.startsWith(e));
+        if (needsPrefix) {
+          const titleEl = el.querySelector('.fc-list-event-title a, .fc-list-event-title');
+          if (titleEl) titleEl.textContent = '📄 ' + titleEl.textContent;
+        }
+        el.addEventListener('mouseenter', e => showTooltip(e, needsPrefix ? '📄 '+title : title));
         el.addEventListener('mousemove',  e => moveTooltip(e));
         el.addEventListener('mouseleave', hideTooltip);
       },
