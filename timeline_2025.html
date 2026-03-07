@@ -345,6 +345,7 @@
       if (baseKey === 'CATEGORIES')       current.categories  = value.toUpperCase().split(',').map(s=>s.trim());
       if (baseKey === 'X-EMERGE-SOURCE')  current.emergeSource = value.toUpperCase().trim();
       if (baseKey === 'X-EMERGE-TYPE')    current.emergeType   = value.toUpperCase().trim();
+      if (baseKey === 'X-EMERGE-OCCUR')    current.emergeOccur   = value.trim();
       if (baseKey === 'X-EMERGE-WP')      current.emergeWP     = value.toUpperCase().trim();
     }
 
@@ -386,7 +387,8 @@
         emergeSource: ev.emergeSource || '',
         emergeType:   ev.emergeType   || '',
         emergeWP:     ev.emergeWP     || '',
-        categories:   ev.categories   || []
+        categories:   ev.categories   || [],
+        emergeOccur:  ev.emergeOccur  || ''
       };
 
       if (!ev.rrule) { events.push({...base, start:sp.date, end:ep?ep.date:null}); continue; }
@@ -402,7 +404,7 @@
       const durMs  = (ep && !base.allDay) ? ep.date - sp.date : null;
 
       // Parse BYDAY for relative monthly recurrence e.g. "1TU" = first Tuesday, "-1MO" = last Monday
-      const DAYS_MAP = {MO:1,TU:2,WE:3,TH:4,FR:5,SA:6,SU:0};
+      const DAYS_MAP = {MO:1,TU:2,WE:3,TH:4,FR:5,SA:6,SU:0,MON:1,TUE:2,WED:3,THU:4,FRI:5,SAT:6,SUN:0};
       function nthWeekdayOfMonth(year, month, n, wd) {
         // n=1 first, n=2 second... n=-1 last
         if (n > 0) {
@@ -420,7 +422,7 @@
 
       let byDayN = null, byDayWD = null;
       if (rule.BYDAY) {
-        const m = rule.BYDAY.match(/^(-?\d+)([A-Z]{2})$/);
+        const m = rule.BYDAY.match(/^(-?\d+)([A-Z]{2,3})$/);
         if (m) { byDayN = parseInt(m[1]); byDayWD = DAYS_MAP[m[2]]; }
       }
 
@@ -449,11 +451,23 @@
         const oEnd = base.allDay
           ? (ep ? addMonths(ep.date, i, utc) : null)
           : (durMs !== null ? new Date(oStart.getTime()+durMs) : null);
+
         events.push({...base, start:oStart, end:oEnd});
       }
     }
 
-    return events.filter(e => e.start);
+    // Build replacement map from REPLACES:OCCUR:... in non-recurring event descriptions
+    const replacementMap = {};
+    for (const ev of events) {
+      if (!ev.rrule) {
+        const m = (ev.description||'').match(/REPLACES:(OCCUR:[^\n\r]+)/);
+        if (m) replacementMap[m[1].trim()] = true;
+      }
+    }
+
+    // Suppress recurring occurrences that have been replaced
+    const suppressedIds = new Set(Object.keys(replacementMap));
+    return events.filter(e => e.start && !(e.emergeOccur && suppressedIds.has(e.emergeOccur)));
   }
 
   // ============================================================

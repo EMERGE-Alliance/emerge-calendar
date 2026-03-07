@@ -466,7 +466,7 @@
       const durMs  = (ep && !base.allDay) ? ep.date - sp.date : null;
 
       // Parse BYDAY for relative monthly recurrence e.g. "1TU" = first Tuesday, "-1MO" = last Monday
-      const DAYS_MAP = {MO:1,TU:2,WE:3,TH:4,FR:5,SA:6,SU:0};
+      const DAYS_MAP = {MO:1,TU:2,WE:3,TH:4,FR:5,SA:6,SU:0,MON:1,TUE:2,WED:3,THU:4,FRI:5,SAT:6,SUN:0};
       function nthWeekdayOfMonth(year, month, n, wd) {
         // n=1 first, n=2 second... n=-1 last
         if (n > 0) {
@@ -484,7 +484,7 @@
 
       let byDayN = null, byDayWD = null;
       if (rule.BYDAY) {
-        const m = rule.BYDAY.match(/^(-?\d+)([A-Z]{2})$/);
+        const m = rule.BYDAY.match(/^(-?\d+)([A-Z]{2,3})$/);
         if (m) { byDayN = parseInt(m[1]); byDayWD = DAYS_MAP[m[2]]; }
       }
 
@@ -513,7 +513,22 @@
         const oEnd = base.allDay
           ? (ep ? addMonths(ep.date, i, utc) : null)
           : (durMs !== null ? new Date(oStart.getTime()+durMs) : null);
+
         events.push({...base, start:oStart, end:oEnd});
+      }
+    }
+
+    // Parse REPLACES:OCCUR:... from non-recurring event descriptions
+    // Build map: occurId → replacement event
+    const replacementMap = {};
+    for (const ev of events) {
+      if (!ev.rrule) {
+        const m = (ev.description||'').match(/REPLACES:(OCCUR:[^\n\r]+)/);
+        if (m) {
+          const targetId = m[1].trim();
+          replacementMap[targetId] = ev;
+          ev._replacesId = targetId;
+        }
       }
     }
 
@@ -521,7 +536,7 @@
     // For each override VEVENT, remove the generated occurrence matching its date,
     // then insert the override (with its own title/description) in its place
     const overrides   = events.filter(e => e.isOverride);
-    const baseEvents  = events.filter(e => !e.isOverride);
+    let   baseEvents  = events.filter(e => !e.isOverride);
 
     if (overrides.length) {
       const result = [...baseEvents];
@@ -532,7 +547,17 @@
         const clean = {...ov}; delete clean.isOverride;
         result.push(clean);
       }
-      return result.filter(e => e.start);
+      baseEvents = result;
+    }
+
+    // Apply REPLACES replacements:
+    // Suppress the matched recurring occurrence; the replacement event stays as-is
+    if (Object.keys(replacementMap).length) {
+      const suppressedIds = new Set(Object.keys(replacementMap));
+      baseEvents = baseEvents.filter(e => {
+        if (e.emergeOccur && suppressedIds.has(e.emergeOccur)) return false;
+        return true;
+      });
     }
 
     return baseEvents.filter(e => e.start);
