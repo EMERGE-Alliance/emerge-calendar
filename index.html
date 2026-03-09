@@ -163,16 +163,17 @@
 
     .fc-event-time-inline{ opacity:0.82; font-weight:600; }
 
-    /* Holiday chips in month/year grid */
-    .holiday-chip .fc-event-main{
+    /* Holiday label events (foreground, transparent bg — sits over the shaded cell) */
+    .holiday-label{ pointer-events:none !important; }
+    .holiday-label .fc-event-main{
       font-size:0.68rem; font-weight:600; white-space:nowrap;
-      overflow:hidden; text-overflow:ellipsis; padding:1px 4px;
-      color:#1a6b5e !important;
+      overflow:hidden; text-overflow:ellipsis; padding:0 3px;
+      color:#0e6655 !important; background:transparent !important;
     }
-    .holiday-chip{ border-radius:3px !important; border-left:3px solid #2aaa96 !important; }
-    /* Holiday in list view — subtle */
-    .fc-list-event.holiday-chip td{ background:#f0fdfb !important; }
-    .fc-list-event.holiday-chip .fc-list-event-title{ color:#1a6b5e !important; font-style:italic; }
+    .fc .fc-bg-event{ opacity:1 !important; }
+    /* Hide holiday labels in list views — background events handle display there */
+    .fc-list-view .holiday-label,
+    .fc-list-event.holiday-label{ display:none !important; }
 
     /* Hide the blue dot and graphic icon in list view — we use emoji prefixes instead */
     .fc .fc-list-event-dot{ display:none !important; }
@@ -676,6 +677,7 @@
     { key:'PROJECT-EVENT',  emoji:'📌', label:'Project Events',   on:true },
     { key:'PROJECT-TASK',   emoji:'🔧', label:'Project Tasks',    on:true },
     { key:'GENERAL',        emoji:'📄', label:'General/Untagged', on:true },
+    { key:'HOLIDAYS',       emoji:'🏖',  label:'Holidays',         on:true },
   ];
 
   // Map emergeType → symbol key (robust — uses X-EMERGE-TYPE, falls back to emoji prefix)
@@ -705,13 +707,12 @@
     const ev = arg.event;
     const isHoliday = ev.extendedProps?.isHoliday;
 
-    // Holiday chip — show 🏖 + condensed title (strip country tags for grid)
+    // Holiday label — already has stripped title, just render it small
     if (isHoliday) {
-      const shortTitle = ev.title.replace(/\s*\[[A-Z/]+\]\s*/g, '').trim() || ev.title;
       if (isGrid) {
-        return { html: `<div class="fc-event-main" style="font-size:0.68rem;padding:1px 3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(shortTitle)}</div>` };
+        return { html: `<div style="font-size:0.68rem;font-weight:600;color:#0e6655;padding:0 2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(ev.title)}</div>` };
       }
-      return true; // list view handled by eventDidMount
+      return true; // list view
     }
 
     const type = ev.extendedProps?.emergeType || 'GENERAL';
@@ -1115,9 +1116,11 @@
         right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek,listYear,multiMonthYear,timeline'
       },
       dayMaxEvents: true,
+      multiMonthMaxEvents: true,
+      eventOrder: 'isHolidayLabel,start,title',
       views: {
         listYear: { buttonText:'Year list' },
-        multiMonthYear: { buttonText:'Year grid', multiMonthMaxEvents: true }
+        multiMonthYear: { buttonText:'Year grid' }
       },
       eventContent: gridEventContent,
 
@@ -1125,6 +1128,14 @@
       eventDidMount: function(info) {
         const el    = info.el;
         const ev    = info.event;
+        // In list view, hide holiday-label duplicates (background events have no list row, 
+        // but label events do — style them subtly)
+        if (ev.extendedProps?.isHoliday && ev.display !== 'background') {
+          const viewType = info.view.type;
+          if (viewType === 'listYear' || viewType === 'listWeek') {
+            // Show as subtle italic row in list — already styled via CSS
+          }
+        }
         const title = ev.title;
         const type  = ev.extendedProps?.emergeType || 'GENERAL';
         // In list view, prepend 📄 for untagged events
@@ -1230,14 +1241,24 @@
     async function loadHolidaysAlwaysOn() {
       try {
         const events = await fetchAndCache(HOLIDAYS_SOURCE.url, 'holidays');
+        // Background shading for the day cell
         const bgEvents = events.map(e => ({
           start:e.start, end:e.end, allDay:true,
-          display:'block',
-          backgroundColor:'#bfeee6', borderColor:'#5ec9b8', textColor:'#1a6b5e',
-          classNames:['holiday-chip'],
-          title:e.title, extendedProps:{ isHoliday:true, description: e.description||'' }
+          display:'background', backgroundColor:'#bfeee6',
+          extendedProps:{ isHoliday:true }
         }));
-        calendar.addEventSource({ id:'src-holidays', events:bgEvents });
+        // Foreground label so the name is visible in the cell
+        const labelEvents = events.map(e => {
+          const shortTitle = e.title.replace(/\s*\[[A-Z/]+\]\s*/g,'').trim() || e.title;
+          return {
+            start:e.start, end:e.end, allDay:true,
+            display:'block',
+            backgroundColor:'transparent', borderColor:'transparent', textColor:'#1a6b5e',
+            classNames:['holiday-label'],
+            title:shortTitle, extendedProps:{ isHoliday:true, isHolidayLabel:1, fullTitle:e.title, description:e.description||'' }
+          };
+        });
+        calendar.addEventSource({ id:'src-holidays', events:[...bgEvents, ...labelEvents] });
         activeSourceIds.set('holidays','src-holidays');
       } catch(e) { console.error(e); setError('Holidays feed failed to load.'); }
     }
@@ -1281,10 +1302,23 @@
       if (!e.target.dataset.symbolKey) return;
       const key = e.target.dataset.symbolKey;
       symbolState[key] = e.target.checked;
-      // update active class
       const label = e.target.closest('.symbol-filter');
       if (label) label.classList.toggle('active', e.target.checked);
       saveSymbolState();
+      // HOLIDAYS toggle — show/hide the holiday event source directly
+      if (key === 'HOLIDAYS') {
+        const srcId = activeSourceIds.get('holidays');
+        if (srcId) {
+          const src = calendar.getEventSourceById(srcId);
+          if (src) { e.target.checked ? src.remove() || loadHolidaysAlwaysOn() : src.remove(); }
+          if (!e.target.checked) activeSourceIds.delete('holidays');
+          else { await loadHolidaysAlwaysOn(); }
+        } else if (e.target.checked) {
+          await loadHolidaysAlwaysOn();
+        }
+        updateStatus();
+        return;
+      }
       await refreshSymbolFilter();
       updateStatus();
     });
