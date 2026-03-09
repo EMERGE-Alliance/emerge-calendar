@@ -213,11 +213,66 @@
     }
     #eventPanel .ep-copy-btn:hover{ background:#4338ca; }
     #eventPanel .ep-hint{ font-size:0.75rem; color:#6366f1; margin-top:6px; line-height:1.4; }
+    #epDebugToggle{
+      background:none; border:1px solid rgba(255,255,255,0.4); color:#fff;
+      border-radius:4px; padding:2px 7px; font-size:0.75rem; cursor:pointer;
+      font-family:inherit; flex-shrink:0; opacity:0.7;
+    }
+    #epDebugToggle:hover{ opacity:1; }
+    #epDebugPanel{
+      display:none; margin-top:12px; border-top:1px solid #e5e7eb; padding-top:12px;
+    }
+    #epDebugPanel.open{ display:block; }
+    .ep-debug-section{ margin-bottom:10px; }
+    .ep-debug-label{
+      font-size:0.7rem; font-weight:700; text-transform:uppercase;
+      letter-spacing:0.06em; color:#9ca3af; margin-bottom:3px;
+    }
+    .ep-debug-value{
+      font-family:monospace; font-size:0.75rem; color:#374151;
+      background:#f9fafb; border:1px solid #e5e7eb; border-radius:4px;
+      padding:6px 8px; word-break:break-all; white-space:pre-wrap;
+      max-height:200px; overflow-y:auto; line-height:1.5;
+    }
+    .ep-debug-value.empty{ color:#9ca3af; font-style:italic; }
     #eventPanel .ep-tz-grid{ display:flex; flex-direction:column; gap:4px; margin-top:4px; }
     #eventPanel .ep-tz-row{ display:flex; justify-content:space-between; align-items:center; padding:5px 8px; background:#f8faff; border-radius:5px; font-size:0.85rem; }
     #eventPanel .ep-tz-label{ color:#4b5563; }
     #eventPanel .ep-tz-time{ font-weight:700; color:#1e3a5f; font-size:0.95rem; }
     #eventPanel .ep-tz-until{ font-size:0.78rem; color:#6b7280; margin-top:4px; padding:0 2px; }
+    .ep-ics-block{
+      background:#f0faf4; border:1px solid #bbf0d0; border-radius:6px;
+      padding:10px 12px; font-size:0.82rem;
+    }
+    .ep-ics-label-row{
+      display:flex; align-items:center; gap:6px;
+      font-size:0.72rem; font-weight:700; text-transform:uppercase;
+      letter-spacing:0.06em; color:#15803d; margin-bottom:6px;
+    }
+    .ep-ics-row{
+      display:flex; align-items:center; justify-content:space-between; gap:8px;
+      margin-bottom:5px;
+    }
+    .ep-ics-row:last-child{ margin-bottom:0; }
+    .ep-ics-url{
+      font-family:monospace; font-size:0.75rem; color:#374151;
+      word-break:break-all; flex:1;
+    }
+    .ep-ics-btn{
+      border:none; border-radius:4px; padding:4px 10px;
+      font-size:0.75rem; cursor:pointer; font-family:inherit;
+      white-space:nowrap; flex-shrink:0;
+    }
+    .ep-ics-btn.copy{ background:#15803d; color:#fff; }
+    .ep-ics-btn.copy:hover{ background:#166534; }
+    .ep-ics-btn.open{ background:#e0f2e9; color:#15803d; border:1px solid #bbf0d0; }
+    .ep-ics-btn.open:hover{ background:#bbf0d0; }
+    .ep-single-ics{
+      margin-top:8px; padding-top:8px; border-top:1px solid #bbf0d0;
+      display:flex; align-items:center; justify-content:space-between; gap:8px;
+    }
+    .ep-single-ics-label{ font-size:0.78rem; color:#374151; flex:1; }
+    .ep-single-ics-label small{ display:block; font-size:0.7rem; color:#6b7280; margin-top:1px; }
     #panelOverlay{
       display:none; position:fixed; inset:0; background:rgba(0,0,0,0.15); z-index:9999;
     }
@@ -288,9 +343,34 @@
   <div id="eventPanel">
     <div class="ep-header">
       <div class="ep-title" id="epTitle"></div>
+      <button id="epDebugToggle" title="Toggle debug info">🐛</button>
       <button class="ep-close" id="epClose">×</button>
     </div>
     <div class="ep-body" id="epBody"></div>
+    <div id="epDebugPanel">
+      <div style="padding:0 16px 16px">
+        <div class="ep-debug-section">
+          <div class="ep-debug-label">Raw Description (from ICS)</div>
+          <div class="ep-debug-value" id="dbgRawDesc"></div>
+        </div>
+        <div class="ep-debug-section">
+          <div class="ep-debug-label">UID</div>
+          <div class="ep-debug-value" id="dbgUid"></div>
+        </div>
+        <div class="ep-debug-section">
+          <div class="ep-debug-label">Source / Type / WP</div>
+          <div class="ep-debug-value" id="dbgMeta"></div>
+        </div>
+        <div class="ep-debug-section">
+          <div class="ep-debug-label">DTSTART / DTEND</div>
+          <div class="ep-debug-value" id="dbgDates"></div>
+        </div>
+        <div class="ep-debug-section">
+          <div class="ep-debug-label">Rendered Notes (after strip)</div>
+          <div class="ep-debug-value" id="dbgRendered"></div>
+        </div>
+      </div>
+    </div>
   </div>
 </main>
 <div class="brand-footer"><img src="footer.png" alt="EMERGE footer" /></div>
@@ -299,7 +379,8 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const BASE_ICS = 'https://pub-577ff589d29c4ebe9d2ea393dcf228f1.r2.dev/';
+  const BASE_ICS  = 'https://pub-577ff589d29c4ebe9d2ea393dcf228f1.r2.dev/';
+  const ICS_HOST  = 'https://calendar.euemerge.eu/';
 
   const WP_SOURCES = [
     { key:'wp1', label:'WP1', url:BASE_ICS+'wp1.ics', className:'src-wp1', color:'#1f4e99' },
@@ -434,14 +515,17 @@
       const base = {
         title:        ev.summary || '(no title)',
         allDay:       sp.allDay,
-        description:  ev.description || '',
-        location:     ev.location || '',
-        emergeSource: ev.emergeSource || '',
-        emergeType:   ev.emergeType   || '',
-        emergeWP:     ev.emergeWP     || '',
-        categories:   ev.categories   || [],
-        uid:          ev.uid          || '',
-        recurrenceId: ev.recurrenceId || '',
+        description:     ev.description || '',
+        rawDescription:  ev.description || '',
+        location:        ev.location || '',
+        emergeSource:    ev.emergeSource || '',
+        emergeType:      ev.emergeType   || '',
+        emergeWP:        ev.emergeWP     || '',
+        categories:      ev.categories   || [],
+        uid:             ev.uid          || '',
+        recurrenceId:    ev.recurrenceId || '',
+        dtstart:         ev.dtstart      || '',
+        dtend:           ev.dtend        || '',
         completed:    (ev.summary || '').includes('✅'),
         emergeOccur:  ev.emergeOccur  || ''
       };
@@ -702,8 +786,9 @@
         .replace(/✅\s*Completed\n?/g, '')
         .replace(/^OCCUR:[^\n]*\n?/mg, '')
         .replace(/^REPLACES:[^\n]*\n?/mg, '')
-        .replace(/^START:[^\n]*/mg, '')
-        .replace(/^END:[^\n]*/mg, '');
+        .replace(/^START:[^\n]*\n?/mg, '')
+        .replace(/^END:[^\n]*\n?/mg, '')
+        .replace(/^BYDAY:[^\n]*\n?/mg, '');
       if (!cleaned.trim()) return '';
       // Split on newlines, filter blank lines, render each as paragraph
       const paras = cleaned.split(/\n/).filter(p => p.trim());
@@ -747,7 +832,50 @@
     const epTitle = document.getElementById('epTitle');
     const epBody  = document.getElementById('epBody');
 
-    function openPanel(title, description, completed, occurId, wpLabel, start, end, allDay) {
+    function buildSingleEventICS(title, start, end, allDay, description, uid, wpLabel, occurId) {
+      const stamp = new Date().toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
+      const fmtDT = d => d.toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
+      const fmtDate = d => d.toISOString().slice(0,10).replace(/-/g,'');
+      const esc = s => (s||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');
+
+      let dtstart, dtend;
+      if (allDay) {
+        dtstart = 'DTSTART;VALUE=DATE:' + fmtDate(start);
+        dtend   = 'DTEND;VALUE=DATE:'   + fmtDate(end || new Date(start.getTime() + 86400000));
+      } else {
+        dtstart = 'DTSTART:' + fmtDT(start);
+        dtend   = end ? 'DTEND:' + fmtDT(end) : '';
+      }
+
+      // Build clean description — strip metadata lines
+      const cleanDesc = (description||'')
+        .replace(/^OCCUR:[^\n]*\n?/mg,'')
+        .replace(/^REPLACES:[^\n]*\n?/mg,'')
+        .replace(/^START:[^\n]*\n?/mg,'')
+        .replace(/^END:[^\n]*\n?/mg,'')
+        .replace(/^BYDAY:[^\n]*\n?/mg,'')
+        .trim();
+
+      const lines = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//EMERGE Alliance//Single Event//EN',
+        'BEGIN:VEVENT',
+        'UID:' + (uid || occurId || stamp + '@emerge'),
+        'DTSTAMP:' + stamp,
+        dtstart,
+        dtend,
+        'SUMMARY:' + esc(title),
+        cleanDesc ? 'DESCRIPTION:' + esc(cleanDesc) : '',
+        wpLabel ? 'CATEGORIES:' + wpLabel : '',
+        'END:VEVENT',
+        'END:VCALENDAR'
+      ].filter(Boolean).join('\r\n');
+
+      return lines;
+    }
+
+    function openPanel(title, description, completed, occurId, wpLabel, start, end, allDay, rawEv) {
       epTitle.textContent = title;
 
       let html = '';
@@ -796,7 +924,50 @@
         </div>`;
       }
 
+      // ── ICS Calendar Links ──
+      if (wpLabel) {
+        const wpKey    = wpLabel.toLowerCase().replace(/\s+/g,'');
+        const httpsUrl = ICS_HOST + wpKey + '.ics';
+        const webcalUrl= httpsUrl.replace('https://', 'webcal://');
+
+        // Single-event ICS — built in browser
+        const uid = rawEv?.extendedProps?.uid || occurId || '';
+        const singleIcs = buildSingleEventICS(title, start, end, allDay, description, uid, wpLabel, occurId);
+        const dataUri   = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(singleIcs);
+        const safeTitle = title.replace(/[^a-z0-9]/gi,'-').replace(/-+/g,'-').slice(0,40);
+
+        html += `<div class="ep-section">
+          <div class="ep-ics-block">
+            <div class="ep-ics-label-row">📅 Subscribe to ${escapeHtml(wpLabel)} Calendar</div>
+            <div class="ep-ics-row">
+              <span class="ep-ics-url">${escapeHtml(webcalUrl)}</span>
+              <button class="ep-ics-btn open" onclick="window.open('${escapeHtml(webcalUrl)}','_self')">Open</button>
+              <button class="ep-ics-btn copy" data-ics-copy="${escapeHtml(httpsUrl)}" id="epIcsCopyBtn">Copy link</button>
+            </div>
+            <div class="ep-single-ics">
+              <div class="ep-single-ics-label">
+                This event only
+                <small>Downloads a .ics file you can import into any calendar app</small>
+              </div>
+              <a class="ep-ics-btn open" href="${dataUri}" download="${safeTitle}.ics" style="text-decoration:none;text-align:center;">⬇ Download</a>
+            </div>
+          </div>
+        </div>`;
+      }
+
       epBody.innerHTML = html;
+
+      // Wire up ICS copy button
+      const icsCopyBtn = document.getElementById('epIcsCopyBtn');
+      if (icsCopyBtn) {
+        icsCopyBtn.addEventListener('click', function() {
+          const url = this.dataset.icsCopy;
+          navigator.clipboard.writeText(url).then(() => {
+            this.textContent = 'Copied ✓';
+            setTimeout(() => this.textContent = 'Copy', 1500);
+          }).catch(() => { window.prompt('Copy this URL:', url); });
+        });
+      }
 
       // Wire up copy button safely via event listener (no inline onclick)
       const copyBtn = document.getElementById('epCopyBtn');
@@ -810,13 +981,49 @@
         });
       }
 
+      // ── Populate debug panel ──
+      const dbgRaw     = document.getElementById('dbgRawDesc');
+      const dbgUid     = document.getElementById('dbgUid');
+      const dbgMeta    = document.getElementById('dbgMeta');
+      const dbgDates   = document.getElementById('dbgDates');
+      const dbgRend    = document.getElementById('dbgRendered');
+      if (rawEv) {
+        const rawDesc = rawEv.extendedProps?.rawDescription || rawEv.extendedProps?.description || description || '';
+        dbgRaw.textContent  = rawDesc || '(empty)';
+        dbgRaw.className    = 'ep-debug-value' + (rawDesc ? '' : ' empty');
+        dbgUid.textContent  = rawEv.extendedProps?.uid || rawEv.id || '(unknown)';
+        dbgMeta.textContent = [
+          'Source: ' + (rawEv.extendedProps?.emergeSource || '?'),
+          'Type:   ' + (rawEv.extendedProps?.emergeType   || '?'),
+          'WP:     ' + (rawEv.extendedProps?.emergeWP     || '?'),
+        ].join('\n');
+        dbgDates.textContent = [
+          'DTSTART: ' + (rawEv.extendedProps?.dtstart || rawEv.startStr || '?'),
+          'DTEND:   ' + (rawEv.extendedProps?.dtend   || rawEv.endStr   || '?'),
+        ].join('\n');
+        const rendered = renderDescription(description);
+        const tmp = document.createElement('div');
+        tmp.innerHTML = rendered;
+        dbgRend.textContent = tmp.textContent || '(empty after strip)';
+        dbgRend.className = 'ep-debug-value' + (tmp.textContent ? '' : ' empty');
+      }
+
       panel.classList.add('open');
       overlay.classList.add('open');
     }
 
+    // Wire debug toggle
+    document.getElementById('epDebugToggle').addEventListener('click', function() {
+      const dp = document.getElementById('epDebugPanel');
+      dp.classList.toggle('open');
+      this.style.opacity = dp.classList.contains('open') ? '1' : '0.7';
+    });
+
     function closePanel() {
       panel.classList.remove('open');
       overlay.classList.remove('open');
+      document.getElementById('epDebugPanel').classList.remove('open');
+      document.getElementById('epDebugToggle').style.opacity = '0.7';
     }
 
     document.getElementById('epClose').addEventListener('click', closePanel);
@@ -902,7 +1109,7 @@
         const occurId  = props.emergeOccur || '';
         const wpLabel  = props.emergeWP    || '';
         hideTooltip();
-        openPanel(ev.title, desc, completed, occurId, wpLabel, ev.start, ev.end, ev.allDay);
+        openPanel(ev.title, desc, completed, occurId, wpLabel, ev.start, ev.end, ev.allDay, ev);
       }
     });
 
