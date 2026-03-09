@@ -161,8 +161,18 @@
     .fc .fc-list-event.src-wp8 td{background:#2e7d32!important;border-color:#2e7d32!important;color:#fff!important;}
     .fc .fc-list-event.src-wp9 td{background:#374151!important;border-color:#374151!important;color:#fff!important;}
 
-    .fc .fc-bg-event{ opacity:1!important; }
     .fc-event-time-inline{ opacity:0.82; font-weight:600; }
+
+    /* Holiday chips in month/year grid */
+    .holiday-chip .fc-event-main{
+      font-size:0.68rem; font-weight:600; white-space:nowrap;
+      overflow:hidden; text-overflow:ellipsis; padding:1px 4px;
+      color:#1a6b5e !important;
+    }
+    .holiday-chip{ border-radius:3px !important; border-left:3px solid #2aaa96 !important; }
+    /* Holiday in list view — subtle */
+    .fc-list-event.holiday-chip td{ background:#f0fdfb !important; }
+    .fc-list-event.holiday-chip .fc-list-event-title{ color:#1a6b5e !important; font-style:italic; }
 
     /* Hide the blue dot and graphic icon in list view — we use emoji prefixes instead */
     .fc .fc-list-event-dot{ display:none !important; }
@@ -693,13 +703,22 @@
   function gridEventContent(arg) {
     const isGrid = arg.view.type.startsWith('dayGrid') || arg.view.type.startsWith('multiMonth');
     const ev = arg.event;
+    const isHoliday = ev.extendedProps?.isHoliday;
+
+    // Holiday chip — show 🏖 + condensed title (strip country tags for grid)
+    if (isHoliday) {
+      const shortTitle = ev.title.replace(/\s*\[[A-Z/]+\]\s*/g, '').trim() || ev.title;
+      if (isGrid) {
+        return { html: `<div class="fc-event-main" style="font-size:0.68rem;padding:1px 3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(shortTitle)}</div>` };
+      }
+      return true; // list view handled by eventDidMount
+    }
+
     const type = ev.extendedProps?.emergeType || 'GENERAL';
-    // Prefix emoji for GENERAL/untagged if title has no emoji already
     const title = ev.title;
     const needsPrefix = type === 'GENERAL' && !['🔷','🎯','🔁','📅','📌','🔧','📄'].some(e => title.startsWith(e));
     const displayTitle = needsPrefix ? '📄 ' + title : title;
     if (!isGrid || !SHOW_TIME_IN_GRID) {
-      // In list view — inject prefix into the rendered element via eventDidMount
       return true;
     }
     const time = arg.timeText ? `<span class="fc-event-time-inline"> ${escapeHtml(arg.timeText)}</span>` : '';
@@ -881,7 +900,7 @@
         'SUMMARY:[EMERGE] ' + esc(title),
         'DESCRIPTION:' + esc(fullDesc),
         'URL:https://www.euemerge.eu',
-        'ORGANIZER;CN=EMERGE Alliance:mailto:info@euemerge.eu',
+        'ORGANIZER;CN=EMERGE Alliance:mailto:emergealliance@ul.ie',
         wpLabel ? 'CATEGORIES:EMERGE,' + wpLabel : 'CATEGORIES:EMERGE',
         'END:VEVENT',
         'END:VCALENDAR'
@@ -1095,9 +1114,10 @@
         center: 'title',
         right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek,listYear,multiMonthYear,timeline'
       },
+      dayMaxEvents: true,
       views: {
         listYear: { buttonText:'Year list' },
-        multiMonthYear: { buttonText:'Year grid' }
+        multiMonthYear: { buttonText:'Year grid', multiMonthMaxEvents: true }
       },
       eventContent: gridEventContent,
 
@@ -1212,8 +1232,10 @@
         const events = await fetchAndCache(HOLIDAYS_SOURCE.url, 'holidays');
         const bgEvents = events.map(e => ({
           start:e.start, end:e.end, allDay:true,
-          display:'background', backgroundColor:HOLIDAYS_SOURCE.color,
-          title:e.title, extendedProps:{ isHoliday:true }
+          display:'block',
+          backgroundColor:'#bfeee6', borderColor:'#5ec9b8', textColor:'#1a6b5e',
+          classNames:['holiday-chip'],
+          title:e.title, extendedProps:{ isHoliday:true, description: e.description||'' }
         }));
         calendar.addEventSource({ id:'src-holidays', events:bgEvents });
         activeSourceIds.set('holidays','src-holidays');
