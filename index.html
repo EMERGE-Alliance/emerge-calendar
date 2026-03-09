@@ -4,8 +4,8 @@
   <meta charset="utf-8" />
   <title>EMERGE – Calendar Hub</title>
 
-  <!-- FullCalendar (free) -->
-  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.19/index.global.min.js"></script>
+  <!-- FullCalendar (free) — vendored locally, see vendor/fullcalendar.min.js -->
+  <script src="./vendor/fullcalendar.min.js"></script>
 
   <style>
     :root{
@@ -113,7 +113,7 @@
       transition: background 0.15s, border-color 0.15s;
     }
     .symbol-filter input{ width:14px; height:14px; margin:0; accent-color:var(--emerge-blue); }
-    .symbol-filter.active{ background:#e8f0fe; border-color:#4a7fcb; }
+    /* .symbol-filter.active colours applied inline via renderSymbolFilters() */
 
     /* Legend */
     .legend{
@@ -698,13 +698,13 @@
   // SYMBOL FILTERS — keyed by X-EMERGE-TYPE value
   // ============================================================
   const SYMBOL_FILTERS = [
-    { key:'MILESTONE',      emoji:'🔷', label:'Milestones',      on:true },
-    { key:'DELIVERABLE',    emoji:'🎯', label:'Deliverables',     on:true },
-    { key:'MONTHLY-MEETING',emoji:'🔁', label:'Monthly Meetings', on:true },
-    { key:'MEETING',        emoji:'📅', label:'Meetings',         on:true },
-    { key:'PROJECT-EVENT',  emoji:'📌', label:'Project Events',   on:true },
-    { key:'PROJECT-TASK',   emoji:'🔧', label:'Project Tasks',    on:true },
-    { key:'GENERAL',        emoji:'📄', label:'General/Untagged', on:true },
+    { key:'MILESTONE',      emoji:'🔷', label:'Milestones',      on:true,  color:'#3b5bdb', accent:'#dce4ff' },
+    { key:'DELIVERABLE',    emoji:'🎯', label:'Deliverables',     on:true,  color:'#d97706', accent:'#fef9c3' },
+    { key:'MONTHLY-MEETING',emoji:'🔁', label:'Monthly Meetings', on:true,  color:'#2e7d32', accent:'#d4edda' },
+    { key:'MEETING',        emoji:'📅', label:'Meetings',         on:true,  color:'#00897b', accent:'#d0f0ec' },
+    { key:'PROJECT-EVENT',  emoji:'📌', label:'Project Events',   on:true,  color:'#1565c0', accent:'#dbeafe' },
+    { key:'PROJECT-TASK',   emoji:'🔧', label:'Project Tasks',    on:true,  color:'#c0392b', accent:'#fde8e8' },
+    { key:'GENERAL',        emoji:'📄', label:'General/Untagged', on:true,  color:'#64748b', accent:'#f1f5f9' },
   ];
 
   // Map emergeType → symbol key (robust — uses X-EMERGE-TYPE, falls back to emoji prefix)
@@ -790,13 +790,25 @@
     const el = document.getElementById('symbolFilters');
     el.innerHTML = '';
     for (const sf of SYMBOL_FILTERS) {
+      const active = !!symbolState[sf.key];
       const label = document.createElement('label');
-      label.className = 'symbol-filter' + (symbolState[sf.key] ? ' active' : '');
+      label.className = 'symbol-filter' + (active ? ' active' : '');
+      // Apply brand colour: active = solid colour bg + white text; inactive = accent tint + colour text
+      if (active) {
+        label.style.background    = sf.color;
+        label.style.borderColor   = sf.color;
+        label.style.color         = '#fff';
+      } else {
+        label.style.background    = sf.accent;
+        label.style.borderColor   = sf.color + '55';  // 33% opacity border
+        label.style.color         = sf.color;
+      }
 
       const cb = document.createElement('input');
       cb.type = 'checkbox';
-      cb.checked = !!symbolState[sf.key];
+      cb.checked = active;
       cb.dataset.symbolKey = sf.key;
+      cb.style.accentColor = sf.color;
 
       label.appendChild(cb);
       label.appendChild(document.createTextNode(` ${sf.emoji} ${sf.label}`));
@@ -1392,9 +1404,8 @@
       if (!e.target.dataset.symbolKey) return;
       const key = e.target.dataset.symbolKey;
       symbolState[key] = e.target.checked;
-      const label = e.target.closest('.symbol-filter');
-      if (label) label.classList.toggle('active', e.target.checked);
       saveSymbolState();
+      renderSymbolFilters();  // re-render all pills to apply colour changes
 
       await refreshSymbolFilter();
       updateStatus();
