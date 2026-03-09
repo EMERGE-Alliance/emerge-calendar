@@ -175,9 +175,11 @@
       color:#0e6655 !important; background:transparent !important;
     }
     .fc .fc-bg-event{ opacity:1 !important; }
-    /* Hide holidays completely from all list views */
-    .fc-list-view .holiday-label,
-    .fc-list-event.holiday-label,
+    /* Holiday labels in list views — show as subtle teal italic rows */
+    .fc-list-event.holiday-label td{ background:#f0fdfb !important; }
+    .fc-list-event.holiday-label .fc-list-event-title a,
+    .fc-list-event.holiday-label .fc-list-event-title{ color:#1a6b5e !important; font-style:italic; pointer-events:auto; cursor:pointer; }
+    /* Hide background events from list views (they only shade grid cells) */
     .fc-list-view .fc-bg-event{ display:none !important; }
 
     /* Hide the blue dot and graphic icon in list view — we use emoji prefixes instead */
@@ -614,7 +616,7 @@
         if (m) { byDayN = parseInt(m[1]); byDayWD = DAYS_MAP[m[2]]; }
       }
 
-      for (let i=0; i<240; i++) {
+      for (let i=0; i<72; i++) {  // max 72 months = 6 years
         let oStart;
         if (byDayN !== null && byDayWD !== null) {
           // Relative monthly — e.g. first Tuesday
@@ -700,7 +702,6 @@
     { key:'PROJECT-EVENT',  emoji:'📌', label:'Project Events',   on:true },
     { key:'PROJECT-TASK',   emoji:'🔧', label:'Project Tasks',    on:true },
     { key:'GENERAL',        emoji:'📄', label:'General/Untagged', on:true },
-    { key:'HOLIDAYS',       emoji:'🏖',  label:'Holidays',         on:true },
   ];
 
   // Map emergeType → symbol key (robust — uses X-EMERGE-TYPE, falls back to emoji prefix)
@@ -1366,20 +1367,7 @@
       const label = e.target.closest('.symbol-filter');
       if (label) label.classList.toggle('active', e.target.checked);
       saveSymbolState();
-      // HOLIDAYS toggle — show/hide the holiday event source directly
-      if (key === 'HOLIDAYS') {
-        const srcId = activeSourceIds.get('holidays');
-        if (srcId) {
-          const src = calendar.getEventSourceById(srcId);
-          if (src) { e.target.checked ? src.remove() || loadHolidaysAlwaysOn() : src.remove(); }
-          if (!e.target.checked) activeSourceIds.delete('holidays');
-          else { await loadHolidaysAlwaysOn(); }
-        } else if (e.target.checked) {
-          await loadHolidaysAlwaysOn();
-        }
-        updateStatus();
-        return;
-      }
+
       await refreshSymbolFilter();
       updateStatus();
     });
