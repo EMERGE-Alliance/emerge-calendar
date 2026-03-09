@@ -97,6 +97,10 @@
     .btn:hover{ background:#e5e7eb; }
 
     /* Symbol filter toggles */
+    .symbol-filter-bar{
+      display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+    }
+    .btn-sm{ padding:3px 10px; font-size:0.78rem; }
     .symbol-filters{
       display:flex; flex-wrap:wrap; gap:8px; align-items:center;
       padding:8px 0 4px;
@@ -164,16 +168,17 @@
     .fc-event-time-inline{ opacity:0.82; font-weight:600; }
 
     /* Holiday label events (foreground, transparent bg — sits over the shaded cell) */
-    .holiday-label{ pointer-events:none !important; }
+    .holiday-label{ cursor:pointer; }
     .holiday-label .fc-event-main{
       font-size:0.68rem; font-weight:600; white-space:nowrap;
       overflow:hidden; text-overflow:ellipsis; padding:0 3px;
       color:#0e6655 !important; background:transparent !important;
     }
     .fc .fc-bg-event{ opacity:1 !important; }
-    /* Hide holiday labels in list views — background events handle display there */
+    /* Hide holidays completely from all list views */
     .fc-list-view .holiday-label,
-    .fc-list-event.holiday-label{ display:none !important; }
+    .fc-list-event.holiday-label,
+    .fc-list-view .fc-bg-event{ display:none !important; }
 
     /* Hide the blue dot and graphic icon in list view — we use emoji prefixes instead */
     .fc .fc-list-event-dot{ display:none !important; }
@@ -340,7 +345,13 @@
     </div>
 
     <!-- Symbol type filters -->
-    <div class="symbol-filters" id="symbolFilters"></div>
+    <div class="symbol-filter-bar">
+      <div class="symbol-filters" id="symbolFilters"></div>
+      <div class="symbol-filter-actions">
+        <button class="btn btn-sm" id="symbolAllBtn" type="button">All</button>
+        <button class="btn btn-sm" id="symbolNoneBtn" type="button">None</button>
+      </div>
+    </div>
 
     <!-- Legend -->
     <div class="legend">
@@ -387,6 +398,10 @@
         <div class="ep-debug-section">
           <div class="ep-debug-label">Rendered Notes (after strip)</div>
           <div class="ep-debug-value" id="dbgRendered"></div>
+        </div>
+        <div class="ep-debug-section">
+          <div class="ep-debug-label">All extendedProps (JSON)</div>
+          <div class="ep-debug-value" id="dbgAllProps"></div>
         </div>
       </div>
     </div>
@@ -530,6 +545,14 @@
       const sp = parseTime(ev.dtstart);
       const ep = parseTime(ev.dtend);
       if (!sp) continue;
+
+      // Debug: warn if description looks truncated (has OCCUR: but nothing after START:)
+      if (ev.description) {
+        const d = ev.description;
+        if (d.includes('OCCUR:') && d.includes('START:') && d.split('\n').filter(l=>l.trim()).length <= 3) {
+          console.warn('[EMERGE parser] Possible truncated description for:', ev.summary, '| raw:', d);
+        }
+      }
 
       const base = {
         title:        ev.summary || '(no title)',
@@ -916,6 +939,7 @@
       let html = '';
 
       // Date + time
+      const isHolidayEvent = rawEv?.extendedProps?.isHoliday;
       if (start) {
         const dateStr = start.toLocaleDateString('en-IE', {
           weekday:'long', year:'numeric', month:'long', day:'numeric'
@@ -938,8 +962,21 @@
       }
 
       // Description
-      const descHtml = renderDescription(description);
-      html += `<div class="ep-section"><div class="ep-label">Notes</div>`;
+      // For holidays, fall back to generating notes from the description field
+      // which contains "Holiday Name: INST (CC) / INST (CC) ..." country breakdown
+      let effectiveDesc = description;
+      if (isHolidayEvent && !effectiveDesc && rawEv?.extendedProps?.fullTitle) {
+        effectiveDesc = rawEv.extendedProps.fullTitle;
+      }
+      // Format holiday description into readable lines
+      let finalDesc = effectiveDesc;
+      if (isHolidayEvent && effectiveDesc) {
+        // "New Year's Day: DUTH (GR) / EUF (DE) / UL (IE)" → readable
+        // Already fine as-is, just pass through
+        finalDesc = effectiveDesc;
+      }
+      const descHtml = renderDescription(finalDesc);
+      html += `<div class="ep-section"><div class="ep-label">${isHolidayEvent ? 'Holiday Details' : 'Notes'}</div>`;
       html += descHtml
         ? `<div class="ep-desc">${descHtml}</div>`
         : `<div class="ep-nodesc">No notes</div>`;
@@ -1045,6 +1082,19 @@
         tmp.innerHTML = rendered;
         dbgRend.textContent = tmp.textContent || '(empty after strip)';
         dbgRend.className = 'ep-debug-value' + (tmp.textContent ? '' : ' empty');
+
+        // Dump all extendedProps as JSON for full inspection
+        const allProps = document.getElementById('dbgAllProps');
+        if (allProps && rawEv) {
+          const props = rawEv.extendedProps || {};
+          allProps.textContent = JSON.stringify(props, null, 2);
+          // Also log to console for easy copy
+          console.group('[EMERGE Debug] Event: ' + rawEv.title);
+          console.log('description:', props.description || props.rawDescription);
+          console.log('extendedProps:', props);
+          console.log('start:', rawEv.startStr, '| end:', rawEv.endStr);
+          console.groupEnd();
+        }
       }
 
       panel.classList.add('open');
@@ -1116,11 +1166,10 @@
         right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek,listYear,multiMonthYear,timeline'
       },
       dayMaxEvents: true,
-      multiMonthMaxEvents: true,
       eventOrder: 'isHolidayLabel,start,title',
       views: {
         listYear: { buttonText:'Year list' },
-        multiMonthYear: { buttonText:'Year grid' }
+        multiMonthYear: { buttonText:'Year grid', dayMaxEvents: true }
       },
       eventContent: gridEventContent,
 
@@ -1247,7 +1296,7 @@
           display:'background', backgroundColor:'#bfeee6',
           extendedProps:{ isHoliday:true }
         }));
-        // Foreground label so the name is visible in the cell
+        // Foreground label so the name is visible in the cell (clickable for full details)
         const labelEvents = events.map(e => {
           const shortTitle = e.title.replace(/\s*\[[A-Z/]+\]\s*/g,'').trim() || e.title;
           return {
@@ -1255,7 +1304,19 @@
             display:'block',
             backgroundColor:'transparent', borderColor:'transparent', textColor:'#1a6b5e',
             classNames:['holiday-label'],
-            title:shortTitle, extendedProps:{ isHoliday:true, isHolidayLabel:1, fullTitle:e.title, description:e.description||'' }
+            title:shortTitle,
+            extendedProps:{
+              isHoliday:true, isHolidayLabel:1,
+              fullTitle:      e.title,
+              description:    e.description || '',
+              rawDescription: e.description || '',
+              emergeSource:   'HOLIDAY',
+              emergeType:     'HOLIDAY',
+              emergeWP:       '',
+              uid:            e.uid || '',
+              dtstart:        e.dtstart || '',
+              dtend:          e.dtend   || ''
+            }
           };
         });
         calendar.addEventSource({ id:'src-holidays', events:[...bgEvents, ...labelEvents] });
@@ -1320,6 +1381,28 @@
         return;
       }
       await refreshSymbolFilter();
+      updateStatus();
+    });
+
+    // Symbol filter All / None
+    document.getElementById('symbolAllBtn').addEventListener('click', async () => {
+      SYMBOL_FILTERS.forEach(f => { symbolState[f.key] = true; });
+      saveSymbolState();
+      renderSymbolFilters();
+      await refreshSymbolFilter();
+      // Re-show holidays if they were hidden
+      if (!activeSourceIds.has('holidays')) await loadHolidaysAlwaysOn();
+      updateStatus();
+    });
+
+    document.getElementById('symbolNoneBtn').addEventListener('click', async () => {
+      SYMBOL_FILTERS.forEach(f => { symbolState[f.key] = false; });
+      saveSymbolState();
+      renderSymbolFilters();
+      await refreshSymbolFilter();
+      // Hide holidays
+      const srcId = activeSourceIds.get('holidays');
+      if (srcId) { const s = calendar.getEventSourceById(srcId); if (s) s.remove(); activeSourceIds.delete('holidays'); }
       updateStatus();
     });
 
