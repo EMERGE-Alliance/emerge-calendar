@@ -199,6 +199,14 @@
     #eventPanel .ep-para{ margin:0 0 8px; }
     #eventPanel .ep-para:last-child{ margin:0; }
     #eventPanel .ep-nodesc{ font-size:0.85rem; color:#9ca3af; font-style:italic; }
+    #eventPanel .ep-notes-footer{
+      margin-top:10px; padding-top:8px; border-top:1px solid #e5e7eb;
+      font-size:0.72rem; color:#9ca3af; display:flex; align-items:center; gap:5px;
+    }
+    #eventPanel .ep-notes-footer a{
+      color:#6b7280; text-decoration:none; font-weight:600;
+    }
+    #eventPanel .ep-notes-footer a:hover{ color:#1f4e99; text-decoration:underline; }
     #eventPanel .ep-occur{
       background:#f0f4ff; border:1px solid #c7d2fe; border-radius:6px;
       padding:10px 12px; font-size:0.85rem;
@@ -847,7 +855,7 @@
         dtend   = end ? 'DTEND:' + fmtDT(end) : '';
       }
 
-      // Build clean description — strip metadata lines
+      // Build clean description — strip metadata lines, add EMERGE footer
       const cleanDesc = (description||'')
         .replace(/^OCCUR:[^\n]*\n?/mg,'')
         .replace(/^REPLACES:[^\n]*\n?/mg,'')
@@ -856,18 +864,25 @@
         .replace(/^BYDAY:[^\n]*\n?/mg,'')
         .trim();
 
+      const footer = '\n\n---\nEMERGE Alliance | www.euemerge.eu\nThis event was shared via the EMERGE Project Calendar.';
+      const fullDesc = cleanDesc + footer;
+
       const lines = [
         'BEGIN:VCALENDAR',
         'VERSION:2.0',
         'PRODID:-//EMERGE Alliance//Single Event//EN',
+        'X-WR-CALNAME:EMERGE Alliance — ' + (wpLabel || 'Project'),
+        'X-WR-CALDESC:EMERGE Project Calendar | www.euemerge.eu',
         'BEGIN:VEVENT',
         'UID:' + (uid || occurId || stamp + '@emerge'),
         'DTSTAMP:' + stamp,
         dtstart,
         dtend,
-        'SUMMARY:' + esc(title),
-        cleanDesc ? 'DESCRIPTION:' + esc(cleanDesc) : '',
-        wpLabel ? 'CATEGORIES:' + wpLabel : '',
+        'SUMMARY:[EMERGE] ' + esc(title),
+        'DESCRIPTION:' + esc(fullDesc),
+        'URL:https://www.euemerge.eu',
+        'ORGANIZER;CN=EMERGE Alliance:mailto:info@euemerge.eu',
+        wpLabel ? 'CATEGORIES:EMERGE,' + wpLabel : 'CATEGORIES:EMERGE',
         'END:VEVENT',
         'END:VCALENDAR'
       ].filter(Boolean).join('\r\n');
@@ -908,6 +923,10 @@
       html += descHtml
         ? `<div class="ep-desc">${descHtml}</div>`
         : `<div class="ep-nodesc">No notes</div>`;
+      html += `<div class="ep-notes-footer">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        EMERGE Alliance &nbsp;·&nbsp; <a href="https://www.euemerge.eu" target="_blank" rel="noopener">www.euemerge.eu</a>
+      </div>`;
       html += `</div>`;
 
       // Occurrence ID
