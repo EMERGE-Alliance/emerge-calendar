@@ -373,11 +373,12 @@
     .fc .fc-button-group .fc-listYear-button,
     .fc .fc-button-group .fc-multiMonthYear-button,
     .fc .fc-button-group .fc-timeline-button { margin-left:5px; border-left:2px solid rgba(0,0,0,0.15) !important; }
-    /* Hide Project Task + holidays in Year Grid and Year List views */
+    /* Hide holidays in all list views and Year Grid */
+    .fc-list-view   .holiday-label   { display:none !important; }
+    .fc-multimonth  .holiday-label   { display:none !important; }
+    /* Hide Project Tasks in Year Grid and Year List only — pill removed entirely below */
     .fc-multimonth  .is-project-task { display:none !important; }
     .fc-list-view   .is-project-task { display:none !important; }
-    .fc-multimonth  .holiday-label   { display:none !important; }
-    .fc-list-view   .holiday-label   { display:none !important; }
     /* Year grid — let cells grow to show all events, tighten event rows */
     .fc-multimonth .fc-daygrid-day-frame { min-height: 2.5em; }
     .fc-multimonth .fc-daygrid-event { font-size: 0.7em; padding: 0 2px; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -484,7 +485,7 @@
   <img src="footer.png" alt="EMERGE footer" />
 </div>
 <div class="version-note" id="versionNote">EMERGE Calendar Hub</div>
-<script>document.getElementById("versionNote").textContent = "EMERGE Calendar Hub · Built 10 March 2026, 23:32";</script>
+<script>document.getElementById("versionNote").textContent = "EMERGE Calendar Hub · Built 10 March 2026, 23:40";</script>
 
 <script>
   // ============================================================
@@ -874,7 +875,7 @@
     { key:'MONTHLY-MEETING',emoji:'🔁', label:'Monthly Meetings', on:true,  color:'#2e7d32', accent:'#d4edda' },
     { key:'MEETING',        emoji:'📅', label:'Meetings',         on:true,  color:'#00897b', accent:'#d0f0ec' },
     { key:'PROJECT-EVENT',  emoji:'📌', label:'Project Events',   on:true,  color:'#1565c0', accent:'#dbeafe' },
-    { key:'PROJECT-TASK',   emoji:'🔧', label:'Project Tasks',    on:true,  color:'#c0392b', accent:'#fde8e8' },
+    // PROJECT-TASK pill removed — tasks hidden in overview views via CSS, visible in day/week/month always
     { key:'GENERAL',        emoji:'📄', label:'General/Untagged', on:true,  color:'#64748b', accent:'#f1f5f9' },
   ];
 
@@ -957,12 +958,7 @@
   // ============================================================
   // RENDER SYMBOL FILTER TOGGLES
   // ============================================================
-  let _lastViewType = '';
-  function applyProjectTaskViewState(viewType) {
-    _lastViewType = viewType;
-    // Re-render pills so sf-hidden is applied correctly for this view
-    renderSymbolFilters();
-  }
+  let _lastViewType = ''; // tracks view for renderSymbolFilters
 
   function renderSymbolFilters() {
     const el = document.getElementById('symbolFilters');
@@ -990,9 +986,7 @@
 
       label.appendChild(cb);
       label.appendChild(document.createTextNode(` ${sf.emoji} ${sf.label}`));
-      // Hide PROJECT-TASK pill in Year List and Year Grid
-      const isOverview = _lastViewType === 'listYear' || _lastViewType === 'multiMonthYear';
-      if (sf.key === 'PROJECT-TASK' && isOverview) label.classList.add('sf-hidden');
+
       el.appendChild(label);
     }
   }
@@ -1385,7 +1379,6 @@
       // If any visible event starts before 08:00, expand the grid back to midnight
       datesSet: function(info) {
         const vt = info.view.type;
-        applyProjectTaskViewState(vt);
         refreshSymbolFilter();
         if (!vt.startsWith('timeGrid')) return;
         const cal = info.view.calendar;
