@@ -483,7 +483,7 @@
   <img src="footer.png" alt="EMERGE footer" />
 </div>
 <div class="version-note" id="versionNote">EMERGE Calendar Hub</div>
-<script>document.getElementById("versionNote").textContent = "EMERGE Calendar Hub · Built 10 March 2026, 23:08";</script>
+<script>document.getElementById("versionNote").textContent = "EMERGE Calendar Hub · Built 10 March 2026, 23:20";</script>
 
 <script>
   // ============================================================
@@ -996,9 +996,11 @@
 
       label.appendChild(cb);
       label.appendChild(document.createTextNode(` ${sf.emoji} ${sf.label}`));
+      // Hide PROJECT-TASK pill in Year List and Year Grid
+      const isOverview = _lastViewType === 'listYear' || _lastViewType === 'multiMonthYear';
+      if (sf.key === 'PROJECT-TASK' && isOverview) label.classList.add('sf-hidden');
       el.appendChild(label);
     }
-
   }
 
   // ============================================================
