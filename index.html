@@ -482,7 +482,7 @@
   <img src="footer.png" alt="EMERGE footer" />
 </div>
 <div class="version-note" id="versionNote">EMERGE Calendar Hub</div>
-<script>document.getElementById("versionNote").textContent = "EMERGE Calendar Hub · Built 10 March 2026, 22:39";</script>
+<script>document.getElementById("versionNote").textContent = "EMERGE Calendar Hub · Built 10 March 2026, 22:44";</script>
 
 <script>
   // ============================================================
@@ -951,7 +951,10 @@
   // ============================================================
   // RENDER SYMBOL FILTER TOGGLES
   // ============================================================
+  let currentViewType = '';
+
   function updateSymbolFilterVisibility(viewType) {
+    currentViewType = viewType;
     const inOverview = viewType === 'listYear' || viewType === 'multiMonthYear';
     document.querySelectorAll('.symbol-filter').forEach(label => {
       const key = label.querySelector('input')?.dataset?.symbolKey;
@@ -990,8 +993,7 @@
       el.appendChild(label);
     }
     // Re-apply view-dependent visibility after rebuild
-    const currentView = calendar?.view?.type;
-    if (currentView) updateSymbolFilterVisibility(currentView);
+    updateSymbolFilterVisibility(currentViewType);
   }
 
   // ============================================================
