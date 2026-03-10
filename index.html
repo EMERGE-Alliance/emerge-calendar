@@ -1397,15 +1397,20 @@
         // Hide holidays from Year List and Year Grid
         if (ev.extendedProps?.isHoliday && ev.display !== 'background' && inOverview) {
           el.style.display = 'none';
-          const row = el.closest('tr');
-          if (row) row.style.display = 'none';
+          // Only hide the <tr> row in list view — in Year Grid there are no event rows
+          if (viewType === 'listYear') {
+            const row = el.closest('tr');
+            if (row) row.style.display = 'none';
+          }
           return;
         }
         // Hide Project Tasks from Year List and Year Grid
         if (inOverview && ev.extendedProps?.emergeType === 'PROJECT-TASK') {
           el.style.display = 'none';
-          const row = el.closest('tr');
-          if (row) row.style.display = 'none';
+          if (viewType === 'listYear') {
+            const row = el.closest('tr');
+            if (row) row.style.display = 'none';
+          }
           return;
         }
         const title = ev.title;
