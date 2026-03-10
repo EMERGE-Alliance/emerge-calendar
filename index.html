@@ -320,19 +320,39 @@
     .fc-event.has-updated .fc-event-title::after,
     .fc-daygrid-event.has-updated .fc-event-title::after{ content:' ⚠️'; }
     /* Allow month-grid day cells to grow to fit all events */
+    .tz-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 8px 0 4px;
+      font-size: 0.8rem;
+      color: #555;
+    }
+    .tz-bar-label { font-weight: 600; color: #444; margin-right: 2px; }
+    .tz-btn {
+      padding: 3px 10px;
+      border-radius: 20px;
+      border: 1.5px solid #ccc;
+      background: #f5f5f5;
+      color: #444;
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+    .tz-btn:hover { border-color: #004f9f; color: #004f9f; }
+    .tz-btn.active { background: #004f9f; border-color: #004f9f; color: #fff; font-weight: 600; }
     .tz-notice {
       font-size: 0.78rem;
       color: #555;
       background: #f8f9fa;
       border: 1px solid #e2e6ea;
       border-radius: 6px;
-      padding: 6px 12px;
-      margin-top: 8px;
+      padding: 5px 12px;
       display: none;
     }
     .tz-notice.visible { display: block; }
-    .tz-notice .tz-local  { font-weight: 600; color: #1a1a1a; }
-    .tz-notice .tz-hint   { color: #888; margin-left: 6px; }
+    .tz-notice .tz-local { font-weight: 600; color: #1a1a1a; }
+    .tz-notice .tz-hint  { color: #888; margin-left: 6px; }
     .fc .fc-daygrid-day-frame{ min-height: 3.5em; height: auto !important; }
     .fc .fc-daygrid-day-events{ min-height: 0 !important; }
     /* Year grid — let cells grow to show all events, tighten event rows */
@@ -388,6 +408,12 @@
   </div>
 
   <div id="calendar"></div>
+  <div class="tz-bar">
+    <span class="tz-bar-label">🕐 Time zone:</span>
+    <button class="tz-btn" data-tz="IE"  id="tzBtnIE" >🇮🇪 Ireland (GMT/IST)</button>
+    <button class="tz-btn" data-tz="CET" id="tzBtnCET">🇪🇺 Central Europe (CET/CEST)</button>
+    <button class="tz-btn" data-tz="EET" id="tzBtnEET">🇬🇷 Greece &amp; Cyprus (EET/EEST)</button>
+  </div>
   <div id="tzNotice" class="tz-notice"></div>
   <div id="fcTooltip" class="fc-tooltip"></div>
 
@@ -457,8 +483,40 @@
     color: '#bfeee6'
   };
 
-  const STORAGE_KEY = 'emergeCalendarHubSelection_wpOnly_v1';
+  const STORAGE_KEY        = 'emergeCalendarHubSelection_wpOnly_v1';
   const SYMBOL_STORAGE_KEY = 'emergeCalendarSymbolFilters_v1';
+  const TZ_STORAGE_KEY     = 'emergeCalendarTZ_v1';
+
+  // ── Timezone preference ──────────────────────────────────────
+  // Maps display key (IE/CET/EET) to IANA zone for FullCalendar
+  const TZ_ZONES = {
+    IE:  { iana: 'Europe/Dublin', label: 'Ireland (GMT/IST)',              flag: '🇮🇪' },
+    CET: { iana: 'Europe/Berlin', label: 'Central Europe (CET/CEST)',      flag: '🇪🇺' },
+    EET: { iana: 'Europe/Athens', label: 'Greece & Cyprus (EET/EEST)',     flag: '🇬🇷' },
+  };
+
+  // Detect best default from browser IANA zone
+  function detectDefaultTZ() {
+    const bz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    // EET zones
+    if (/Athens|Nicosia|Helsinki|Riga|Tallinn|Vilnius|Sofia|Bucharest|Kiev|Kyiv|Chisinau|Beirut|Damascus|Amman|Jerusalem|Gaza/.test(bz)) return 'EET';
+    // CET zones
+    if (/Berlin|Paris|Madrid|Rome|Amsterdam|Brussels|Vienna|Warsaw|Prague|Budapest|Ljubljana|Bratislava|Zagreb|Sarajevo|Belgrade|Skopje|Tirane|Oslo|Stockholm|Copenhagen|Zurich|Luxembourg/.test(bz)) return 'CET';
+    // Default IE
+    return 'IE';
+  }
+
+  function loadTZPref() {
+    try {
+      const saved = localStorage.getItem(TZ_STORAGE_KEY);
+      if (saved && TZ_ZONES[saved]) return saved;
+    } catch(_) {}
+    return detectDefaultTZ();
+  }
+
+  function saveTZPref(key) {
+    try { localStorage.setItem(TZ_STORAGE_KEY, key); } catch(_) {}
+  }
   const SHOW_TIME_IN_GRID = true;
 
   // ============================================================
@@ -1201,13 +1259,10 @@
       },
       dayMaxEvents: true,
       eventOrder: 'isHolidayLabel,start,title',
+      timeZone: TZ_ZONES[loadTZPref()].iana,  // set from user preference / browser default
       slotMinTime: '08:00:00',
       scrollTime:  '08:00:00',
-      eventTimeFormat: {
-        hour:   'numeric',
-        minute: '2-digit',
-        timeZoneName: 'short'   // e.g. "2:30 PM IST" — makes timezone visible in list view
-      },
+      eventTimeFormat: { hour: 'numeric', minute: '2-digit' },
       views: {
         listYear:       { buttonText:'Year list' },
         multiMonthYear: { buttonText:'Year grid', dayMaxEvents: false },
@@ -1225,7 +1280,10 @@
         const hasEarlyEvent = events.some(ev => {
           if (!ev.start || ev.allDay) return false;
           if (ev.start < rangeStart || ev.start >= rangeEnd) return false;
-          return ev.start.getHours() < 8;
+          // Check the hour in the currently active display timezone
+          const activeTZ = TZ_ZONES[loadTZPref()].iana;
+          const activeHour = parseInt(ev.start.toLocaleString('en-IE', {timeZone: activeTZ, hour:'2-digit', hour12:false}), 10);
+          return activeHour < 8;
         });
         const target = hasEarlyEvent ? '00:00:00' : '08:00:00';
         if (cal.getOption('slotMinTime') !== target) {
@@ -1300,22 +1358,39 @@
 
     calendar.render();
 
-    // ── Timezone notice bar ──────────────────────────────────────
-    // Shows the user's local timezone clearly beneath the calendar
+    // ── Timezone selector ───────────────────────────────────────
     (function() {
-      const tz     = Intl.DateTimeFormat().resolvedOptions().timeZone;  // e.g. "Europe/Athens"
-      const abbr   = new Date().toLocaleTimeString('en', {timeZoneName:'short'}).split(' ').pop(); // e.g. "EET"
-      const offset = new Date().toLocaleTimeString('en', {timeZoneName:'longOffset'}).split(' ').pop(); // e.g. "GMT+2"
-      const notice = document.getElementById('tzNotice');
-      if (!notice) return;
-      const isIrish = tz === 'Europe/Dublin' || tz === 'Europe/London';
-      if (isIrish) {
-        // No ambiguity for Irish users — show brief note
-        notice.innerHTML = `🕐 Times shown in <span class="tz-local">Irish time (${abbr})</span> — all events are entered in Irish time.`;
-      } else {
-        notice.innerHTML = `🕐 Times shown in your local timezone: <span class="tz-local">${tz} (${abbr}, ${offset})</span>.<span class="tz-hint">Click any event for times across all partner timezones.</span>`;
+      function applyTZ(key, isSwitch) {
+        const zone = TZ_ZONES[key];
+        saveTZPref(key);
+
+        // Update button states
+        ['IE','CET','EET'].forEach(k => {
+          const btn = document.getElementById('tzBtn' + k);
+          if (btn) btn.classList.toggle('active', k === key);
+        });
+
+        // Update notice bar
+        const notice = document.getElementById('tzNotice');
+        if (notice) {
+          notice.innerHTML = `Times displayed in <span class="tz-local">${zone.flag} ${zone.label}</span>.<span class="tz-hint">Click any event for all partner zone times.</span>`;
+          notice.classList.add('visible');
+        }
+
+        // Switch FullCalendar timezone (only after first render)
+        if (isSwitch) {
+          calendar.setOption('timeZone', zone.iana);
+        }
       }
-      notice.classList.add('visible');
+
+      // Wire up buttons
+      ['IE','CET','EET'].forEach(k => {
+        const btn = document.getElementById('tzBtn' + k);
+        if (btn) btn.addEventListener('click', () => applyTZ(k, true));
+      });
+
+      // Apply saved/detected preference on load
+      applyTZ(loadTZPref(), false);
     })();
 
     const fromUrl     = getSelectionFromUrl();

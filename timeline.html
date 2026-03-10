@@ -53,6 +53,11 @@
 
     .card { background:#fff; border-radius:8px; padding:10px; box-shadow:0 2px 10px rgba(0,0,0,0.08); }
     .controls { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:10px; }
+    .tz-bar { display:flex; align-items:center; gap:6px; margin:6px 0 8px; font-size:0.8rem; color:#555; }
+    .tz-bar-label { font-weight:600; color:#444; margin-right:2px; }
+    .tz-btn { padding:3px 10px; border-radius:20px; border:1.5px solid #ccc; background:#f5f5f5; color:#444; font-size:0.78rem; cursor:pointer; transition:background 0.15s,border-color 0.15s,color 0.15s; }
+    .tz-btn:hover { border-color:#004f9f; color:#004f9f; }
+    .tz-btn.active { background:#004f9f; border-color:#004f9f; color:#fff; font-weight:600; }
 
     .btn {
       display:inline-block; padding:6px 10px; border-radius:6px; border:1px solid #ccc;
@@ -169,6 +174,14 @@
     <!-- Symbol type filters -->
     <div class="symbol-filters" id="symbolFilters"></div>
 
+    <!-- Timezone selector -->
+    <div class="tz-bar">
+      <span class="tz-bar-label">🕐 Time zone:</span>
+      <button class="tz-btn" data-tz="IE"  id="tzBtnIE" >🇮🇪 Ireland (GMT/IST)</button>
+      <button class="tz-btn" data-tz="CET" id="tzBtnCET">🇪🇺 Central Europe (CET/CEST)</button>
+      <button class="tz-btn" data-tz="EET" id="tzBtnEET">🇬🇷 Greece &amp; Cyprus (EET/EEST)</button>
+    </div>
+
     <!-- Legend -->
     <div class="legend">
       <span class="legend-item">🔷 Milestone</span>
@@ -226,6 +239,47 @@
 
   const STORAGE_KEY        = 'emerge_timeline_toggles_v1';
   const SYMBOL_STORAGE_KEY = 'emerge_timeline_symbol_filters_v1';
+  const TZ_STORAGE_KEY     = 'emergeCalendarTZ_v1';  // shared with index.html
+
+  const TZ_ZONES = {
+    IE:  { iana: 'Europe/Dublin', label: 'Ireland (GMT/IST)',         flag: '🇮🇪', offsetHours: function(d){ return getIANAOffset('Europe/Dublin', d); } },
+    CET: { iana: 'Europe/Berlin', label: 'Central Europe (CET/CEST)', flag: '🇪🇺', offsetHours: function(d){ return getIANAOffset('Europe/Berlin', d); } },
+    EET: { iana: 'Europe/Athens', label: 'Greece & Cyprus (EET/EEST)',flag: '🇬🇷', offsetHours: function(d){ return getIANAOffset('Europe/Athens', d); } },
+  };
+
+  // Get UTC offset in hours for a given IANA zone at a given date
+  function getIANAOffset(iana, date) {
+    const d = date || new Date();
+    const utcStr  = d.toLocaleString('en-GB', { timeZone: 'UTC' });
+    const zoneStr = d.toLocaleString('en-GB', { timeZone: iana });
+    const parse = s => { const [dt,tm] = s.split(', '); const [h,m] = tm.split(':'); return +h*60 + +m; };
+    return (parse(zoneStr) - parse(utcStr)) / 60;
+  }
+
+  function detectDefaultTZ() {
+    const bz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    if (/Athens|Nicosia|Helsinki|Riga|Tallinn|Vilnius|Sofia|Bucharest|Kiev|Kyiv|Chisinau|Beirut|Damascus|Amman|Jerusalem|Gaza/.test(bz)) return 'EET';
+    if (/Berlin|Paris|Madrid|Rome|Amsterdam|Brussels|Vienna|Warsaw|Prague|Budapest|Ljubljana|Bratislava|Zagreb|Sarajevo|Belgrade|Skopje|Tirane|Oslo|Stockholm|Copenhagen|Zurich|Luxembourg/.test(bz)) return 'CET';
+    return 'IE';
+  }
+
+  function loadTZPref() {
+    try { const s = localStorage.getItem(TZ_STORAGE_KEY); if (s && TZ_ZONES[s]) return s; } catch(_) {}
+    return detectDefaultTZ();
+  }
+
+  function saveTZPref(key) {
+    try { localStorage.setItem(TZ_STORAGE_KEY, key); } catch(_) {}
+  }
+
+  // Shift a Date from its source timezone (always Dublin/Irish) to the display timezone
+  function shiftToDisplayTZ(date) {
+    if (!date) return date;
+    const irishOff  = getIANAOffset('Europe/Dublin', date);
+    const displayOff = getIANAOffset(TZ_ZONES[loadTZPref()].iana, date);
+    const diffMs = (displayOff - irishOff) * 3600000;
+    return new Date(date.getTime() + diffMs);
+  }
   const INDEX_URL          = 'index.html';
   const SHOW_TIME_IN_LABELS = true;
 
@@ -269,13 +323,17 @@
 
   function formatTimeForLabel(start, end, allDay) {
     if (!start||allDay) return '';
-    const s = `${pad2(start.getHours())}:${pad2(start.getMinutes())}`;
+    const ds = shiftToDisplayTZ(start);
+    const s = `${pad2(ds.getHours())}:${pad2(ds.getMinutes())}`;
     if (!end) return s;
-    return `${s}–${pad2(end.getHours())}:${pad2(end.getMinutes())}`;
+    const de = shiftToDisplayTZ(end);
+    return `${s}–${pad2(de.getHours())}:${pad2(de.getMinutes())}`;
   }
 
   function formatDateRange(start, end, allDay) {
     if (!start) return 'Unknown';
+    start = shiftToDisplayTZ(start) || start;
+    end   = shiftToDisplayTZ(end)   || end;
     const od = { year:'numeric', month:'short', day:'numeric' };
     const ot = { hour:'2-digit', minute:'2-digit' };
     if (allDay) return end
@@ -724,18 +782,38 @@
     const style=`background-color:${bg};border-color:${bg};color:${fg};`;
     const filtered = evs.filter(ev => isVisible(ev));
     return filtered.map((ev,idx)=>{
+      // Shift start/end to display timezone for vis-timeline positioning
+      const dispStart = ev.allDay ? ev.start : (shiftToDisplayTZ(ev.start) || ev.start);
+      const dispEnd   = ev.allDay ? ev.end   : (shiftToDisplayTZ(ev.end)   || ev.end);
       const t = SHOW_TIME_IN_LABELS ? formatTimeForLabel(ev.start,ev.end,ev.allDay) : '';
       const label = (SHOW_TIME_IN_LABELS&&t) ? `${ev.title} ${t}` : ev.title;
       return {
         id: feed.id.toLowerCase()+'-'+idx,
         group:feed.id, content:label, title:ev.title,
-        start:ev.start, end:ev.end||undefined,
-        type:ev.end?'range':'point',
+        start:dispStart, end:dispEnd||undefined,
+        type:dispEnd?'range':'point',
         allDay:ev.allDay, description:ev.description, location:ev.location,
         emergeType:ev.emergeType, emergeSource:ev.emergeSource, emergeWP:ev.emergeWP, style
       };
     });
   }
+
+  // ── Timezone selector ──────────────────────────────────────────
+  function applyTZTimeline(key, isSwitch) {
+    saveTZPref(key);
+    ['IE','CET','EET'].forEach(k => {
+      const btn = document.getElementById('tzBtn' + k);
+      if (btn) btn.classList.toggle('active', k === key);
+    });
+    // Reload timeline items with new TZ shift applied
+    if (isSwitch) reloadTimeline();
+  }
+
+  // Wire buttons
+  ['IE','CET','EET'].forEach(k => {
+    const btn = document.getElementById('tzBtn' + k);
+    if (btn) btn.addEventListener('click', () => applyTZTimeline(k, true));
+  });
 
   async function reloadTimeline() {
     statusEl.textContent='Refreshing…'; statusEl.classList.remove('error');
@@ -756,6 +834,7 @@
     setTimeout(refreshWeekendShading,0);
   }
 
+  applyTZTimeline(loadTZPref(), false);
   reloadTimeline();
 </script>
 </body>
