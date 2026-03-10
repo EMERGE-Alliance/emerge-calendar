@@ -373,10 +373,11 @@
     .fc .fc-button-group .fc-listYear-button,
     .fc .fc-button-group .fc-multiMonthYear-button,
     .fc .fc-button-group .fc-timeline-button { margin-left:5px; border-left:2px solid rgba(0,0,0,0.15) !important; }
-    /* Hide Project Task events in Month, Year Grid and Year List views */
+    /* Hide Project Task + holidays in Year Grid and Year List views */
     .fc-multimonth  .is-project-task { display:none !important; }
     .fc-list-view   .is-project-task { display:none !important; }
-    .fc-daygrid-body .is-project-task { display:none !important; }
+    .fc-multimonth  .holiday-label   { display:none !important; }
+    .fc-list-view   .holiday-label   { display:none !important; }
     /* Year grid — let cells grow to show all events, tighten event rows */
     .fc-multimonth .fc-daygrid-day-frame { min-height: 2.5em; }
     .fc-multimonth .fc-daygrid-event { font-size: 0.7em; padding: 0 2px; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -483,7 +484,7 @@
   <img src="footer.png" alt="EMERGE footer" />
 </div>
 <div class="version-note" id="versionNote">EMERGE Calendar Hub</div>
-<script>document.getElementById("versionNote").textContent = "EMERGE Calendar Hub · Built 10 March 2026, 23:26";</script>
+<script>document.getElementById("versionNote").textContent = "EMERGE Calendar Hub · Built 10 March 2026, 23:32";</script>
 
 <script>
   // ============================================================
@@ -1417,25 +1418,7 @@
         const viewType = info.view.type;
         const inOverview = viewType === 'listYear' || viewType === 'multiMonthYear';
 
-        // Hide holidays from Year List and Year Grid
-        if (ev.extendedProps?.isHoliday && ev.display !== 'background' && inOverview) {
-          el.style.display = 'none';
-          // Only hide the <tr> row in list view — in Year Grid there are no event rows
-          if (viewType === 'listYear') {
-            const row = el.closest('tr');
-            if (row) row.style.display = 'none';
-          }
-          return;
-        }
-        // Hide Project Tasks from Year List and Year Grid
-        if (inOverview && ev.extendedProps?.emergeType === 'PROJECT-TASK') {
-          el.style.display = 'none';
-          if (viewType === 'listYear') {
-            const row = el.closest('tr');
-            if (row) row.style.display = 'none';
-          }
-          return;
-        }
+        // Holidays and Project Tasks in overview views are hidden via CSS (.holiday-label, .is-project-task)
         const title = ev.title;
         const type  = ev.extendedProps?.emergeType || 'GENERAL';
         // In list view, prepend 📄 for untagged events
