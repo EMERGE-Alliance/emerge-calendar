@@ -1359,8 +1359,8 @@
     calendar.render();
 
     // ── Timezone selector ───────────────────────────────────────
-    (function() {
-      function applyTZ(key, isSwitch) {
+    // applyTZ is in outer scope so it can call refreshSymbolFilter
+    function applyTZ(key, isSwitch) {
         const zone = TZ_ZONES[key];
         saveTZPref(key);
 
@@ -1377,9 +1377,11 @@
           notice.classList.add('visible');
         }
 
-        // Switch FullCalendar timezone (only after first render)
+        // Apply timezone to FullCalendar — setOption alone isn't enough;
+        // we must remove and re-add all sources so events are re-parsed in the new zone
+        calendar.setOption('timeZone', zone.iana);
         if (isSwitch) {
-          calendar.setOption('timeZone', zone.iana);
+          refreshSymbolFilter();
         }
       }
 
@@ -1391,7 +1393,6 @@
 
       // Apply saved/detected preference on load
       applyTZ(loadTZPref(), false);
-    })();
 
     const fromUrl     = getSelectionFromUrl();
     const fromStorage = getSelectionFromStorage();
