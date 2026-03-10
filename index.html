@@ -211,6 +211,7 @@
       letter-spacing:0.06em; color:#6b7280; margin-bottom:4px;
     }
     #eventPanel .ep-completed{ color:#16a34a; font-weight:600; font-size:0.9rem; margin-bottom:12px; }
+    #eventPanel .ep-updated{ background:#fff8e1; border-left:3px solid #f59e0b; padding:6px 10px; border-radius:4px; font-size:0.82rem; color:#92400e; margin-bottom:10px; }
     #eventPanel .ep-desc{ font-size:0.9rem; color:#374151; line-height:1.6; }
     #eventPanel .ep-desc p{ margin:0 0 8px; }
     #eventPanel .ep-desc p:last-child{ margin:0; }
@@ -402,25 +403,18 @@
       </div>
     </div>
 
-    <!-- Legend -->
-    <div class="legend">
-      <span class="legend-item">🔷 Milestone</span>
-      <span class="legend-item">🎯 Deliverable</span>
-      <span class="legend-item">🔁 Monthly Meeting</span>
-      <span class="legend-item">📅 Meeting</span>
-      <span class="legend-item">📌 Project Event</span>
-      <span class="legend-item">🔧 Project Task</span>
-      <span class="legend-item">⚠️ Updated vs Grant Agreement</span>
+    <!-- Timezone selector -->
+    <div class="tz-bar">
+      <span class="tz-bar-label">🕐 Time zone:</span>
+      <button class="tz-btn" data-tz="IE"  id="tzBtnIE" >🇮🇪 Ireland (GMT/IST)</button>
+      <button class="tz-btn" data-tz="CET" id="tzBtnCET">🇪🇺 Central Europe (CET/CEST)</button>
+      <button class="tz-btn" data-tz="EET" id="tzBtnEET">🇬🇷 Greece &amp; Cyprus (EET/EEST)</button>
     </div>
+
+
   </div>
 
   <div id="calendar"></div>
-  <div class="tz-bar">
-    <span class="tz-bar-label">🕐 Time zone:</span>
-    <button class="tz-btn" data-tz="IE"  id="tzBtnIE" >🇮🇪 Ireland (GMT/IST)</button>
-    <button class="tz-btn" data-tz="CET" id="tzBtnCET">🇪🇺 Central Europe (CET/CEST)</button>
-    <button class="tz-btn" data-tz="EET" id="tzBtnEET">🇬🇷 Greece &amp; Cyprus (EET/EEST)</button>
-  </div>
   <div id="tzNotice" class="tz-notice"></div>
   <div id="fcTooltip" class="fc-tooltip"></div>
 
@@ -466,7 +460,8 @@
 <div class="brand-footer">
   <img src="footer.png" alt="EMERGE footer" />
 </div>
-<div class="version-note">EMERGE Calendar – TZID build 2026‑03‑10</div>
+<div class="version-note" id="versionNote">EMERGE Calendar Hub</div>
+<script>document.getElementById("versionNote").textContent = "EMERGE Calendar Hub · Built " + new Date().toLocaleString("en-IE", {dateStyle:"long", timeStyle:"short", timeZone:"Europe/Dublin"});</script>
 
 <script>
   // ============================================================
@@ -1125,6 +1120,14 @@
       if (completed || title.includes('✅')) {
         html += `<div class="ep-completed">✅ Completed</div>`;
       }
+      // ⚠️ Updated vs Grant Agreement — shown for events tagged CATEGORY7 (Bronze)
+      const cats = rawEv?.extendedProps?.categories || [];
+      const isUpdated = cats.includes('CATEGORY7') || cats.includes('BRONZE') ||
+                        (rawEv?.classNames||[]).includes('has-updated') ||
+                        (rawEv?.extendedProps?.emergeType||'') === 'UPDATED';
+      if (isUpdated) {
+        html += `<div class="ep-updated">⚠️ Updated vs Grant Agreement — dates or details differ from the original grant agreement.</div>`;
+      }
 
       // Description
       // For holidays, fall back to generating notes from the description field
@@ -1332,7 +1335,7 @@
       },
       dayMaxEvents: true,
       eventOrder: 'isHolidayLabel,start,title',
-      timeZone: 'local',  // events are pre-shifted to display TZ manually
+      timeZone: 'local',  // events pre-shifted manually
       slotMinTime: '08:00:00',
       scrollTime:  '08:00:00',
       eventTimeFormat: { hour: 'numeric', minute: '2-digit' },
@@ -1404,7 +1407,6 @@
         const occurId  = props.emergeOccur || '';
         const wpLabel  = props.emergeWP    || '';
         hideTooltip();
-        // Use original Irish-UTC times for side panel so all-zone display is always correct
         const panelStart = ev.extendedProps?.irishStart || ev.start;
         const panelEnd   = ev.extendedProps?.irishEnd   || ev.end;
         openPanel(ev.title, desc, completed, occurId, wpLabel, panelStart, panelEnd, ev.allDay, ev);
@@ -1496,8 +1498,6 @@
       const wpEvents = filtered.map(e => {
         const cls = (Array.isArray(e.className)?e.className:(e.className?[e.className]:[])).concat([def.className]);
         if (e.allDay) return { ...e, className: cls };
-        // Store original Irish-UTC dates in extendedProps for the side panel,
-        // then shift start/end to the display timezone for correct grid placement.
         return {
           ...e,
           extendedProps: { ...(e.extendedProps||{}), irishStart: e.start, irishEnd: e.end },
