@@ -5,7 +5,7 @@
   <title>EMERGE – Calendar Hub</title>
 
   <!-- FullCalendar (free) — vendored locally, see vendor/fullcalendar.min.js -->
-  <script src="./vendor/fullcalendar.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.19/index.global.min.js"></script>
 
   <style>
     :root{
@@ -540,10 +540,9 @@
     try { localStorage.setItem(TZ_STORAGE_KEY, key); } catch(_) {}
   }
 
-  // Get the UTC offset in minutes for a given IANA zone at a given Date
+  // Get UTC offset in ms for an IANA zone at a given Date (DST-aware)
   function getIANAOffsetMs(iana, date) {
     const d = date || new Date();
-    // Format the same instant in UTC and in the target zone, diff them
     const fmt = (tz) => {
       const s = d.toLocaleString('en-GB', {
         timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit',
@@ -554,18 +553,17 @@
       const [th,tmi,ts] = tp.split(':');
       return Date.UTC(+dy,+dm-1,+dd,+th,+tmi,+ts);
     };
-    return fmt(iana) - fmt('UTC');  // offset in ms (e.g. +3600000 for UTC+1)
+    return fmt(iana) - fmt('UTC');
   }
 
-  // Shift a UTC-based Date from source zone (Europe/Dublin) to display zone,
-  // returning a new Date whose local-time getHours()/getMinutes() represent the display time.
+  // Shift a UTC-based Date (stored as Irish time) to the selected display timezone.
+  // Returns a new Date whose .getHours()/.getMinutes() = the wall-clock time in displayIana.
   function shiftToDisplay(date, displayIana) {
     if (!date || !(date instanceof Date)) return date;
-    const srcOffsetMs  = getIANAOffsetMs('Europe/Dublin', date);
-    const destOffsetMs = getIANAOffsetMs(displayIana, date);
-    const diffMs = destOffsetMs - srcOffsetMs;
-    if (diffMs === 0) return date;
-    return new Date(date.getTime() + diffMs);
+    const srcMs  = getIANAOffsetMs('Europe/Dublin', date);
+    const destMs = getIANAOffsetMs(displayIana, date);
+    const diff   = destMs - srcMs;
+    return diff === 0 ? date : new Date(date.getTime() + diff);
   }
   const SHOW_TIME_IN_GRID = true;
 
@@ -1339,7 +1337,7 @@
       },
       dayMaxEvents: true,
       eventOrder: 'isHolidayLabel,start,title',
-      timeZone: 'local',  // we pre-shift Date objects ourselves; do not let FC re-interpret them
+      timeZone: 'local',  // events are pre-shifted to display TZ manually
       slotMinTime: '08:00:00',
       scrollTime:  '08:00:00',
       eventTimeFormat: { hour: 'numeric', minute: '2-digit' },
@@ -1361,9 +1359,8 @@
           if (!ev.start || ev.allDay) return false;
           if (ev.start < rangeStart || ev.start >= rangeEnd) return false;
           // Check the hour in the currently active display timezone
-          // Events are pre-shifted to display TZ, so just read local hours directly
-          const h = ev.start.getHours();
-          return h < 8;
+          // Events are pre-shifted to display TZ — read local hours directly
+          return ev.start.getHours() < 8;
         });
         const target = hasEarlyEvent ? '00:00:00' : '08:00:00';
         if (cal.getOption('slotMinTime') !== target) {
@@ -1459,7 +1456,7 @@
 
         // Re-add all sources shifted to the new display timezone
         if (isSwitch) {
-          await refreshSymbolFilter();
+          refreshSymbolFilter();
         }
       }
 
@@ -1503,7 +1500,6 @@
       const wpEvents = filtered.map(e => {
         const cls = (Array.isArray(e.className)?e.className:(e.className?[e.className]:[])).concat([def.className]);
         if (e.allDay) return { ...e, className: cls };
-        // Shift timed events from Irish time to display timezone
         return {
           ...e,
           start: shiftToDisplay(e.start, displayIana),
