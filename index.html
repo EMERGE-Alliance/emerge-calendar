@@ -485,7 +485,7 @@
   <img src="footer.png" alt="EMERGE footer" />
 </div>
 <div class="version-note" id="versionNote">EMERGE Calendar Hub</div>
-<script>document.getElementById("versionNote").textContent = "EMERGE Calendar Hub · Built 10 March 2026, 23:40";</script>
+<script>document.getElementById("versionNote").textContent = "EMERGE Calendar Hub · Built 10 March 2026, 23:47";</script>
 
 <script>
   // ============================================================
@@ -592,13 +592,16 @@
       if (raw) {
         const parsed = JSON.parse(raw);
         SYMBOL_FILTERS.forEach(f => {
-          if (f.key === 'PROJECT-TASK') return; // view-controlled — never restore from storage
           symbolState[f.key] = typeof parsed[f.key] === 'boolean' ? parsed[f.key] : f.on;
         });
-        return;
+      } else {
+        SYMBOL_FILTERS.forEach(f => symbolState[f.key] = f.on);
       }
-    } catch(_) {}
-    SYMBOL_FILTERS.forEach(f => symbolState[f.key] = f.on);
+    } catch(_) {
+      SYMBOL_FILTERS.forEach(f => symbolState[f.key] = f.on);
+    }
+    // PROJECT-TASK is always enabled — no pill, always visible (hidden in overview views via CSS)
+    symbolState['PROJECT-TASK'] = true;
   }
 
   function saveSymbolState() {
