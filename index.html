@@ -214,6 +214,7 @@
       letter-spacing:0.06em; color:#6b7280; margin-bottom:4px;
     }
     #eventPanel .ep-completed{ color:#16a34a; font-weight:600; font-size:0.9rem; margin-bottom:12px; }
+    #eventPanel .ep-updated{ background:#fff8e1; border-left:3px solid #f59e0b; padding:6px 10px; border-radius:4px; font-size:0.82rem; color:#92400e; margin-bottom:10px; }
     #eventPanel .ep-desc{ font-size:0.9rem; color:#374151; line-height:1.6; }
     #eventPanel .ep-desc p{ margin:0 0 8px; }
     #eventPanel .ep-desc p:last-child{ margin:0; }
@@ -358,15 +359,21 @@
     .tz-notice .tz-local { font-weight: 600; color: #1a1a1a; }
     .tz-notice .tz-hint  { color: #888; margin-left: 6px; }
     .fc .fc-daygrid-day-frame{ min-height: 3.5em; height: auto !important; }
+    .fc .fc-daygrid-day-events{ min-height: 0 !important; }
+    /* Capitalise Today button */
     .fc .fc-today-button { text-transform: capitalize; }
-    /* Small visual gap before Year List, Year Grid, and Timeline in the toolbar */
+    /* Small separator before Year List, Year Grid and Timeline in toolbar */
     .fc .fc-button-group .fc-listYear-button,
     .fc .fc-button-group .fc-multiMonthYear-button,
     .fc .fc-button-group .fc-timeline-button {
       margin-left: 4px;
       border-left: 2px solid rgba(0,0,0,0.15) !important;
     }
-    .fc .fc-daygrid-day-events{ min-height: 0 !important; }
+    /* Small separator before List (listWeek) in toolbar */
+    .fc .fc-button-group .fc-listWeek-button {
+      margin-left: 2px;
+      border-left: 1px solid rgba(0,0,0,0.10) !important;
+    }
     /* Year grid — let cells grow to show all events, tighten event rows */
     .fc-multimonth .fc-daygrid-day-frame { min-height: 2.5em; }
     .fc-multimonth .fc-daygrid-event { font-size: 0.7em; padding: 0 2px; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -414,25 +421,18 @@
       </div>
     </div>
 
-    <!-- Legend -->
-    <div class="legend">
-      <span class="legend-item">🔷 Milestone</span>
-      <span class="legend-item">🎯 Deliverable</span>
-      <span class="legend-item">🔁 Monthly Meeting</span>
-      <span class="legend-item">📅 Meeting</span>
-      <span class="legend-item">📌 Project Event</span>
-      <span class="legend-item">🔧 Project Task</span>
-      <span class="legend-item">⚠️ Updated vs Grant Agreement</span>
+    <!-- Timezone selector -->
+    <div class="tz-bar">
+      <span class="tz-bar-label">🕐 Time zone:</span>
+      <button class="tz-btn" data-tz="IE"  id="tzBtnIE" >🇮🇪 Ireland (GMT/IST)</button>
+      <button class="tz-btn" data-tz="CET" id="tzBtnCET">🇪🇺 Central Europe (CET/CEST)</button>
+      <button class="tz-btn" data-tz="EET" id="tzBtnEET">🇬🇷 Greece &amp; Cyprus (EET/EEST)</button>
     </div>
+
+
   </div>
 
   <div id="calendar"></div>
-  <div class="tz-bar">
-    <span class="tz-bar-label">🕐 Time zone:</span>
-    <button class="tz-btn" data-tz="IE"  id="tzBtnIE" >🇮🇪 Ireland (GMT/IST)</button>
-    <button class="tz-btn" data-tz="CET" id="tzBtnCET">🇪🇺 Central Europe (CET/CEST)</button>
-    <button class="tz-btn" data-tz="EET" id="tzBtnEET">🇬🇷 Greece &amp; Cyprus (EET/EEST)</button>
-  </div>
   <div id="tzNotice" class="tz-notice"></div>
   <div id="fcTooltip" class="fc-tooltip"></div>
 
@@ -478,7 +478,8 @@
 <div class="brand-footer">
   <img src="footer.png" alt="EMERGE footer" />
 </div>
-<div class="version-note">EMERGE Calendar – TZID build 2026‑03‑10</div>
+<div class="version-note" id="versionNote">EMERGE Calendar Hub</div>
+<script>document.getElementById("versionNote").textContent = "EMERGE Calendar Hub · Built " + new Date().toLocaleString("en-IE", {dateStyle:"long", timeStyle:"short", timeZone:"Europe/Dublin"});</script>
 
 <script>
   // ============================================================
@@ -566,6 +567,7 @@
     };
     return fmt(iana) - fmt('UTC');
   }
+
   function shiftToDisplay(date, displayIana) {
     if (!date || !(date instanceof Date)) return date;
     const diff = getIANAOffsetMs(displayIana, date) - getIANAOffsetMs('Europe/Dublin', date);
@@ -1136,6 +1138,14 @@
       if (completed || title.includes('✅')) {
         html += `<div class="ep-completed">✅ Completed</div>`;
       }
+      // ⚠️ Updated vs Grant Agreement — shown for events tagged CATEGORY7 (Bronze)
+      const cats = rawEv?.extendedProps?.categories || [];
+      const isUpdated = cats.includes('CATEGORY7') || cats.includes('BRONZE') ||
+                        (rawEv?.classNames||[]).includes('has-updated') ||
+                        (rawEv?.extendedProps?.emergeType||'') === 'UPDATED';
+      if (isUpdated) {
+        html += `<div class="ep-updated">⚠️ Updated vs Grant Agreement — dates or details differ from the original grant agreement.</div>`;
+      }
 
       // Description
       // For holidays, fall back to generating notes from the description field
@@ -1343,7 +1353,7 @@
       },
       dayMaxEvents: true,
       eventOrder: 'isHolidayLabel,start,title',
-      timeZone: 'local',
+      timeZone: 'local',  // events pre-shifted manually
       slotMinTime: '08:00:00',
       scrollTime:  '08:00:00',
       eventTimeFormat: { hour: 'numeric', minute: '2-digit' },
@@ -1381,26 +1391,22 @@
         const ev    = info.event;
         // In list view, hide holiday-label duplicates (background events have no list row, 
         // but label events do — style them subtly)
-        if (ev.extendedProps?.isHoliday && ev.display !== 'background') {
-          const viewType = info.view.type;
-          // Hide holidays AND project tasks from Year list and Year grid
-          const hideInOverviews = viewType === 'listYear' || viewType === 'multiMonthYear';
-          if (isHoliday && hideInOverviews) {
-            el.style.display = 'none';
-            const row = el.closest('tr');
-            if (row) row.style.display = 'none';
-            return;
-          }
-          if (hideInOverviews && (ev.extendedProps?.emergeType === 'PROJECT-TASK')) {
-            el.style.display = 'none';
-            const row = el.closest('tr');
-            if (row) row.style.display = 'none';
-            return;
-          }
-          if (viewType === 'listYear' && isHoliday) {
-            // Already handled above, but keep guard
-            return;
-          }
+        const viewType = info.view.type;
+        const inOverview = viewType === 'listYear' || viewType === 'multiMonthYear';
+
+        // Hide holidays from Year List and Year Grid
+        if (ev.extendedProps?.isHoliday && ev.display !== 'background' && inOverview) {
+          el.style.display = 'none';
+          const row = el.closest('tr');
+          if (row) row.style.display = 'none';
+          return;
+        }
+        // Hide Project Tasks from Year List and Year Grid
+        if (inOverview && ev.extendedProps?.emergeType === 'PROJECT-TASK') {
+          el.style.display = 'none';
+          const row = el.closest('tr');
+          if (row) row.style.display = 'none';
+          return;
         }
         const title = ev.title;
         const type  = ev.extendedProps?.emergeType || 'GENERAL';
@@ -1471,7 +1477,9 @@
           notice.classList.add('visible');
         }
 
-        if (isSwitch) { refreshSymbolFilter(); }
+        if (isSwitch) {
+          refreshSymbolFilter();
+        }
       }
 
       // Wire up buttons
@@ -1514,8 +1522,13 @@
       const wpEvents = filtered.map(e => {
         const cls = (Array.isArray(e.className)?e.className:(e.className?[e.className]:[])).concat([def.className]);
         if (e.allDay) return { ...e, className: cls };
-        return { ...e, extendedProps:{...(e.extendedProps||{}),irishStart:e.start,irishEnd:e.end},
-          start:shiftToDisplay(e.start,displayIana), end:e.end?shiftToDisplay(e.end,displayIana):null, className:cls };
+        return {
+          ...e,
+          extendedProps: { ...(e.extendedProps||{}), irishStart: e.start, irishEnd: e.end },
+          start: shiftToDisplay(e.start, displayIana),
+          end:   e.end ? shiftToDisplay(e.end, displayIana) : null,
+          className: cls
+        };
       });
       calendar.addEventSource({ id:'src-'+key, events:wpEvents });
       activeSourceIds.set(key, 'src-'+key);
