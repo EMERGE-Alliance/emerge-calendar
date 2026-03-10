@@ -372,6 +372,9 @@
     .fc .fc-button-group .fc-listYear-button,
     .fc .fc-button-group .fc-multiMonthYear-button,
     .fc .fc-button-group .fc-timeline-button { margin-left:5px; border-left:2px solid rgba(0,0,0,0.15) !important; }
+    /* Hide Project Task events in Year Grid and Year List views */
+    .fc-multimonth .is-project-task { display:none !important; }
+    .fc-list-view  .is-project-task { display:none !important; }
     /* Year grid — let cells grow to show all events, tighten event rows */
     .fc-multimonth .fc-daygrid-day-frame { min-height: 2.5em; }
     .fc-multimonth .fc-daygrid-event { font-size: 0.7em; padding: 0 2px; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -478,7 +481,7 @@
   <img src="footer.png" alt="EMERGE footer" />
 </div>
 <div class="version-note" id="versionNote">EMERGE Calendar Hub</div>
-<script>document.getElementById("versionNote").textContent = "EMERGE Calendar Hub · Built " + new Date().toLocaleString("en-IE", {dateStyle:"long", timeStyle:"short", timeZone:"Europe/Dublin"});</script>
+<script>document.getElementById("versionNote").textContent = "EMERGE Calendar Hub · Built 10 March 2026, 21:39";</script>
 
 <script>
   // ============================================================
@@ -1138,10 +1141,8 @@
         html += `<div class="ep-completed">✅ Completed</div>`;
       }
       // ⚠️ Updated vs Grant Agreement — shown for events tagged CATEGORY7 (Bronze)
-      const cats = rawEv?.extendedProps?.categories || [];
-      const isUpdated = cats.includes('CATEGORY7') || cats.includes('BRONZE') ||
-                        (rawEv?.classNames||[]).includes('has-updated') ||
-                        (rawEv?.extendedProps?.emergeType||'') === 'UPDATED';
+      const isUpdated = !!(rawEv?.extendedProps?.isUpdated) ||
+                        (rawEv?.classNames||[]).includes('has-updated');
       if (isUpdated) {
         html += `<div class="ep-updated"><strong>⚠️ Updated vs Grant Agreement</strong><br>The yellow triangle on this event indicates that its dates or details have changed since the original grant agreement was signed. The information shown here reflects the current agreed schedule, not the original grant submission.</div>`;
       }
@@ -1383,6 +1384,10 @@
           cal.setOption('slotMinTime', target);
         }
       },
+      eventClassNames: function(arg) {
+        const type = arg.event.extendedProps?.emergeType || '';
+        return type === 'PROJECT-TASK' ? ['is-project-task'] : [];
+      },
       eventContent: gridEventContent,
 
       // Simple hover tooltip — title + "click for details"
@@ -1525,11 +1530,17 @@
       const filtered = applySymbolFilter(events);
       const displayIana = TZ_ZONES[loadTZPref()].iana;
       const wpEvents = filtered.map(e => {
+        const rawCats = e.categories || [];
+        const isUpdated = rawCats.includes('CATEGORY7') || rawCats.includes('BRONZE');
         const cls = (Array.isArray(e.className)?e.className:(e.className?[e.className]:[])).concat([def.className]);
-        if (e.allDay) return { ...e, className: cls };
+        if (isUpdated) cls.push('has-updated');
+        if (e.allDay) return {
+          ...e, className: cls,
+          extendedProps: { ...(e.extendedProps||{}), isUpdated, categories: rawCats }
+        };
         return {
           ...e,
-          extendedProps: { ...(e.extendedProps||{}), irishStart: e.start, irishEnd: e.end },
+          extendedProps: { ...(e.extendedProps||{}), irishStart: e.start, irishEnd: e.end, isUpdated, categories: rawCats },
           start: shiftToDisplay(e.start, displayIana),
           end:   e.end ? shiftToDisplay(e.end, displayIana) : null,
           className: cls
