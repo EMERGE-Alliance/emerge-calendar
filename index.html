@@ -1412,7 +1412,7 @@
 
     // ── Timezone selector ───────────────────────────────────────
     // applyTZ is in outer scope so it can call refreshSymbolFilter
-    function applyTZ(key, isSwitch) {
+    async function applyTZ(key, isSwitch) {
         const zone = TZ_ZONES[key];
         saveTZPref(key);
 
@@ -1433,7 +1433,7 @@
         // we must remove and re-add all sources so events are re-parsed in the new zone
         calendar.setOption('timeZone', zone.iana);
         if (isSwitch) {
-          refreshSymbolFilter();
+          await refreshSymbolFilter();
         }
       }
 
@@ -1453,16 +1453,16 @@
     saveSelectionToStorage(selected);
     renderToggles(selected);
 
-    const rawCache      = new Map();  // key -> raw parsed events[]
+    const rawCache      = new Map();  // key -> raw ICS text (re-parsed each time so TZ shift is fresh)
     const activeSourceIds = new Map();
 
     async function fetchAndCache(url, key) {
-      if (rawCache.has(key)) return rawCache.get(key);
+      if (rawCache.has(key)) return parseICS(rawCache.get(key));
       const resp = await fetch(url, { cache:'no-store' });
       if (!resp.ok) throw new Error(key + ': HTTP ' + resp.status);
-      const events = parseICS(await resp.text());
-      rawCache.set(key, events);
-      return events;
+      const text = await resp.text();
+      rawCache.set(key, text);          // store raw text
+      return parseICS(text);            // return freshly parsed events
     }
 
     // Filter events by active symbol filters
@@ -1473,10 +1473,22 @@
     function addWpSource(key, def, events) {
       if (activeSourceIds.has(key)) return;
       const filtered = applySymbolFilter(events);
-      const wpEvents = filtered.map(e => ({
-        ...e,
-        className: (Array.isArray(e.className)?e.className:(e.className?[e.className]:[])).concat([def.className])
-      }));
+      const wpEvents = filtered.map(e => {
+        const cls = (Array.isArray(e.className)?e.className:(e.className?[e.className]:[])).concat([def.className]);
+        // Pass start/end as ISO strings so FullCalendar's timeZone option can reformat them.
+        // For all-day events keep as YYYY-MM-DD string; for timed events use full UTC ISO string.
+        let start, end;
+        if (e.allDay) {
+          // All-day: use date-only string derived from UTC date
+          const d = e.start;
+          start = `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
+          end   = e.end ? (() => { const d2=e.end; return `${d2.getUTCFullYear()}-${String(d2.getUTCMonth()+1).padStart(2,'0')}-${String(d2.getUTCDate()).padStart(2,'0')}`; })() : null;
+        } else {
+          start = e.start instanceof Date ? e.start.toISOString() : e.start;
+          end   = e.end   instanceof Date ? e.end.toISOString()   : e.end;
+        }
+        return { ...e, start, end, className: cls };
+      });
       calendar.addEventSource({ id:'src-'+key, events:wpEvents });
       activeSourceIds.set(key, 'src-'+key);
     }
@@ -1489,14 +1501,14 @@
       activeSourceIds.delete(key);
     }
 
-    // Full refresh: remove and re-add all active WP sources with updated symbol filter
+    // Full refresh: remove and re-add all active WP sources with updated symbol filter / TZ
     async function refreshSymbolFilter() {
       for (const key of Array.from(activeSourceIds.keys())) {
         if (key === 'holidays') continue;
         removeSource(key);
         const def = WP_SOURCES.find(s => s.key === key);
         if (!def || !rawCache.has(key)) continue;
-        addWpSource(key, def, rawCache.get(key));
+        addWpSource(key, def, parseICS(rawCache.get(key)));  // re-parse for fresh TZ shift
       }
     }
 
@@ -1523,8 +1535,13 @@
       try {
         const events = await fetchAndCache(HOLIDAYS_SOURCE.url, 'holidays');
         // Background shading for the day cell
+        // Convert all-day holiday dates to YYYY-MM-DD strings
+        function holDateStr(d) {
+          if (!d) return null;
+          return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
+        }
         const bgEvents = events.map(e => ({
-          start:e.start, end:e.end, allDay:true,
+          start:holDateStr(e.start), end:holDateStr(e.end), allDay:true,
           display:'background', backgroundColor:'#bfeee6',
           extendedProps:{ isHoliday:true }
         }));
@@ -1532,7 +1549,7 @@
         const labelEvents = events.map(e => {
           const shortTitle = e.title.replace(/\s*\[[A-Z/]+\]\s*/g,'').trim() || e.title;
           return {
-            start:e.start, end:e.end, allDay:true,
+            start:holDateStr(e.start), end:holDateStr(e.end), allDay:true,
             display:'block',
             backgroundColor:'transparent', borderColor:'transparent', textColor:'#1a6b5e',
             classNames:['holiday-label'],
