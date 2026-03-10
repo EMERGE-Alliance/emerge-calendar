@@ -539,6 +539,34 @@
   function saveTZPref(key) {
     try { localStorage.setItem(TZ_STORAGE_KEY, key); } catch(_) {}
   }
+
+  // Get the UTC offset in minutes for a given IANA zone at a given Date
+  function getIANAOffsetMs(iana, date) {
+    const d = date || new Date();
+    // Format the same instant in UTC and in the target zone, diff them
+    const fmt = (tz) => {
+      const s = d.toLocaleString('en-GB', {
+        timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit',
+        hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false
+      });
+      const [dp, tp] = s.split(', ');
+      const [dd,dm,dy] = dp.split('/');
+      const [th,tmi,ts] = tp.split(':');
+      return Date.UTC(+dy,+dm-1,+dd,+th,+tmi,+ts);
+    };
+    return fmt(iana) - fmt('UTC');  // offset in ms (e.g. +3600000 for UTC+1)
+  }
+
+  // Shift a UTC-based Date from source zone (Europe/Dublin) to display zone,
+  // returning a new Date whose local-time getHours()/getMinutes() represent the display time.
+  function shiftToDisplay(date, displayIana) {
+    if (!date || !(date instanceof Date)) return date;
+    const srcOffsetMs  = getIANAOffsetMs('Europe/Dublin', date);
+    const destOffsetMs = getIANAOffsetMs(displayIana, date);
+    const diffMs = destOffsetMs - srcOffsetMs;
+    if (diffMs === 0) return date;
+    return new Date(date.getTime() + diffMs);
+  }
   const SHOW_TIME_IN_GRID = true;
 
   // ============================================================
@@ -1311,7 +1339,7 @@
       },
       dayMaxEvents: true,
       eventOrder: 'isHolidayLabel,start,title',
-      timeZone: TZ_ZONES[loadTZPref()].iana,  // set from user preference / browser default
+      timeZone: 'local',  // we pre-shift Date objects ourselves; do not let FC re-interpret them
       slotMinTime: '08:00:00',
       scrollTime:  '08:00:00',
       eventTimeFormat: { hour: 'numeric', minute: '2-digit' },
@@ -1333,9 +1361,9 @@
           if (!ev.start || ev.allDay) return false;
           if (ev.start < rangeStart || ev.start >= rangeEnd) return false;
           // Check the hour in the currently active display timezone
-          const activeTZ = TZ_ZONES[loadTZPref()].iana;
-          const activeHour = parseInt(ev.start.toLocaleString('en-IE', {timeZone: activeTZ, hour:'2-digit', hour12:false}), 10);
-          return activeHour < 8;
+          // Events are pre-shifted to display TZ, so just read local hours directly
+          const h = ev.start.getHours();
+          return h < 8;
         });
         const target = hasEarlyEvent ? '00:00:00' : '08:00:00';
         if (cal.getOption('slotMinTime') !== target) {
@@ -1412,7 +1440,7 @@
 
     // ── Timezone selector ───────────────────────────────────────
     // applyTZ is in outer scope so it can call refreshSymbolFilter
-    async function applyTZ(key, isSwitch) {
+    function applyTZ(key, isSwitch) {
         const zone = TZ_ZONES[key];
         saveTZPref(key);
 
@@ -1429,9 +1457,7 @@
           notice.classList.add('visible');
         }
 
-        // Apply timezone to FullCalendar — setOption alone isn't enough;
-        // we must remove and re-add all sources so events are re-parsed in the new zone
-        calendar.setOption('timeZone', zone.iana);
+        // Re-add all sources shifted to the new display timezone
         if (isSwitch) {
           await refreshSymbolFilter();
         }
@@ -1453,16 +1479,16 @@
     saveSelectionToStorage(selected);
     renderToggles(selected);
 
-    const rawCache      = new Map();  // key -> raw ICS text (re-parsed each time so TZ shift is fresh)
+    const rawCache      = new Map();  // key -> raw parsed events[]
     const activeSourceIds = new Map();
 
     async function fetchAndCache(url, key) {
-      if (rawCache.has(key)) return parseICS(rawCache.get(key));
+      if (rawCache.has(key)) return rawCache.get(key);
       const resp = await fetch(url, { cache:'no-store' });
       if (!resp.ok) throw new Error(key + ': HTTP ' + resp.status);
-      const text = await resp.text();
-      rawCache.set(key, text);          // store raw text
-      return parseICS(text);            // return freshly parsed events
+      const events = parseICS(await resp.text());
+      rawCache.set(key, events);
+      return events;
     }
 
     // Filter events by active symbol filters
@@ -1473,21 +1499,17 @@
     function addWpSource(key, def, events) {
       if (activeSourceIds.has(key)) return;
       const filtered = applySymbolFilter(events);
+      const displayIana = TZ_ZONES[loadTZPref()].iana;
       const wpEvents = filtered.map(e => {
         const cls = (Array.isArray(e.className)?e.className:(e.className?[e.className]:[])).concat([def.className]);
-        // Pass start/end as ISO strings so FullCalendar's timeZone option can reformat them.
-        // For all-day events keep as YYYY-MM-DD string; for timed events use full UTC ISO string.
-        let start, end;
-        if (e.allDay) {
-          // All-day: use date-only string derived from UTC date
-          const d = e.start;
-          start = `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
-          end   = e.end ? (() => { const d2=e.end; return `${d2.getUTCFullYear()}-${String(d2.getUTCMonth()+1).padStart(2,'0')}-${String(d2.getUTCDate()).padStart(2,'0')}`; })() : null;
-        } else {
-          start = e.start instanceof Date ? e.start.toISOString() : e.start;
-          end   = e.end   instanceof Date ? e.end.toISOString()   : e.end;
-        }
-        return { ...e, start, end, className: cls };
+        if (e.allDay) return { ...e, className: cls };
+        // Shift timed events from Irish time to display timezone
+        return {
+          ...e,
+          start: shiftToDisplay(e.start, displayIana),
+          end:   e.end ? shiftToDisplay(e.end, displayIana) : null,
+          className: cls
+        };
       });
       calendar.addEventSource({ id:'src-'+key, events:wpEvents });
       activeSourceIds.set(key, 'src-'+key);
@@ -1501,14 +1523,14 @@
       activeSourceIds.delete(key);
     }
 
-    // Full refresh: remove and re-add all active WP sources with updated symbol filter / TZ
+    // Full refresh: remove and re-add all active WP sources with updated symbol filter
     async function refreshSymbolFilter() {
       for (const key of Array.from(activeSourceIds.keys())) {
         if (key === 'holidays') continue;
         removeSource(key);
         const def = WP_SOURCES.find(s => s.key === key);
         if (!def || !rawCache.has(key)) continue;
-        addWpSource(key, def, parseICS(rawCache.get(key)));  // re-parse for fresh TZ shift
+        addWpSource(key, def, rawCache.get(key));
       }
     }
 
@@ -1535,13 +1557,8 @@
       try {
         const events = await fetchAndCache(HOLIDAYS_SOURCE.url, 'holidays');
         // Background shading for the day cell
-        // Convert all-day holiday dates to YYYY-MM-DD strings
-        function holDateStr(d) {
-          if (!d) return null;
-          return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
-        }
         const bgEvents = events.map(e => ({
-          start:holDateStr(e.start), end:holDateStr(e.end), allDay:true,
+          start:e.start, end:e.end, allDay:true,
           display:'background', backgroundColor:'#bfeee6',
           extendedProps:{ isHoliday:true }
         }));
@@ -1549,7 +1566,7 @@
         const labelEvents = events.map(e => {
           const shortTitle = e.title.replace(/\s*\[[A-Z/]+\]\s*/g,'').trim() || e.title;
           return {
-            start:holDateStr(e.start), end:holDateStr(e.end), allDay:true,
+            start:e.start, end:e.end, allDay:true,
             display:'block',
             backgroundColor:'transparent', borderColor:'transparent', textColor:'#1a6b5e',
             classNames:['holiday-label'],
