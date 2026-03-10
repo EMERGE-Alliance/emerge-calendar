@@ -1187,9 +1187,31 @@
       },
       dayMaxEvents: true,
       eventOrder: 'isHolidayLabel,start,title',
+      slotMinTime: '08:00:00',
+      scrollTime:  '08:00:00',
       views: {
-        listYear: { buttonText:'Year list' },
-        multiMonthYear: { buttonText:'Year grid', dayMaxEvents: false }
+        listYear:       { buttonText:'Year list' },
+        multiMonthYear: { buttonText:'Year grid', dayMaxEvents: false },
+        timeGridWeek:   { buttonText:'Week' },
+        timeGridDay:    { buttonText:'Day' }
+      },
+      // If any visible event starts before 08:00, expand the grid back to midnight
+      datesSet: function(info) {
+        const vt = info.view.type;
+        if (!vt.startsWith('timeGrid')) return;
+        const cal = info.view.calendar;
+        const events = cal.getEvents();
+        const rangeStart = info.start;
+        const rangeEnd   = info.end;
+        const hasEarlyEvent = events.some(ev => {
+          if (!ev.start || ev.allDay) return false;
+          if (ev.start < rangeStart || ev.start >= rangeEnd) return false;
+          return ev.start.getHours() < 8;
+        });
+        const target = hasEarlyEvent ? '00:00:00' : '08:00:00';
+        if (cal.getOption('slotMinTime') !== target) {
+          cal.setOption('slotMinTime', target);
+        }
       },
       eventContent: gridEventContent,
 
