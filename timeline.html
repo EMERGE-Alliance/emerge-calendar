@@ -53,11 +53,7 @@
 
     .card { background:#fff; border-radius:8px; padding:10px; box-shadow:0 2px 10px rgba(0,0,0,0.08); }
     .controls { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:10px; }
-    .view-btns { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
-    .ctrl-sep { display:inline-block; width:1px; height:22px; background:#dde2ee; margin:0 4px; }
-    .symbol-filter-bar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-    .symbol-filters { display:flex; flex-wrap:wrap; gap:8px; padding:8px 0 4px; }
-    .tz-bar { display:flex; align-items:center; justify-content:center; gap:6px; margin:6px 0 8px; font-size:0.8rem; color:#555; }
+    .tz-bar { display:flex; align-items:center; gap:6px; margin:6px 0 8px; font-size:0.8rem; color:#555; }
     .tz-bar-label { font-weight:600; color:#444; margin-right:2px; }
     .tz-btn { padding:3px 10px; border-radius:20px; border:1.5px solid #ccc; background:#f5f5f5; color:#444; font-size:0.78rem; cursor:pointer; transition:background 0.15s,border-color 0.15s,color 0.15s; }
     .tz-btn:hover { border-color:#004f9f; color:#004f9f; }
@@ -82,7 +78,11 @@
     .swatch { width:12px; height:12px; border-radius:3px; border:1px solid rgba(0,0,0,0.25); display:inline-block; }
 
     /* Symbol filters */
-
+    .symbol-filters {
+      display:flex; flex-wrap:wrap; gap:8px;
+      padding:8px 10px; border:1px solid #e6e8ef; border-radius:8px;
+      background:#fbfcff; margin-bottom:10px;
+    }
     .symbol-filter {
       display:inline-flex; align-items:center; gap:6px;
       padding:4px 10px; border-radius:999px;
@@ -140,8 +140,8 @@
   <div class="header-container">
     <img src="https://euemerge.eu/wp-content/uploads/2025/05/emerge_website.png" alt="EMERGE Logo" class="header-logo" />
     <div class="header-text">
-      <h1>EMERGE Timeline</h1>
-      <p>Work Package events &amp; milestones · Filter by WP and event type</p>
+      <h1>EMERGE – Timeline (WPs + Holidays)</h1>
+      <p>Filter by Work Package and event type</p>
     </div>
   </div>
 </header>
@@ -159,42 +159,20 @@
   <div id="status">Loading timeline…</div>
 
   <div class="card">
-    <!-- View controls row -->
     <div class="controls">
-      <div class="view-btns">
-        <button class="btn" id="zoomInBtn">Zoom In</button>
-        <button class="btn" id="zoomOutBtn">Zoom Out</button>
-        <button class="btn" id="fitBtn">Fit All</button>
-        <button class="btn" id="todayBtn">Today</button>
-        <span class="ctrl-sep"></span>
-        <button class="btn" id="dayBtn">Day</button>
-        <button class="btn" id="weekBtn">Week</button>
-        <button class="btn" id="monthBtn">Month</button>
-        <button class="btn" id="yearBtn">Year</button>
-        <span class="ctrl-sep"></span>
-        <button class="btn" id="yearBtn2025">2025</button>
-        <button class="btn" id="yearBtn2026">2026</button>
-        <button class="btn" id="yearBtn2027">2027</button>
-        <button class="btn" id="yearBtn2028">2028</button>
-      </div>
-      <div class="actions">
-        <button class="btn" id="backBtn">← Calendar</button>
-      </div>
+      <button class="btn" id="zoomInBtn">Zoom in</button>
+      <button class="btn" id="zoomOutBtn">Zoom out</button>
+      <button class="btn" id="fitBtn">Fit all</button>
+      <button class="btn" id="yearBtn">This year</button>
+      <button class="btn" id="showAllBtn">Show all</button>
+      <button class="btn" id="hideAllBtn">Hide all</button>
+      <button class="btn" id="backBtn">Back to landing page</button>
     </div>
 
-    <!-- WP toggles -->
-    <div class="controls" style="margin-top:8px;">
-      <div class="togglebar" id="togglebar"></div>
-      <div class="actions">
-        <button class="btn btn-sm" id="showAllBtn">All</button>
-        <button class="btn btn-sm" id="hideAllBtn">None</button>
-      </div>
-    </div>
+    <div class="togglebar" id="togglebar"></div>
 
     <!-- Symbol type filters -->
-    <div class="symbol-filter-bar" style="border-top:1px solid #e9ecef;padding-top:8px;margin-top:4px;">
-      <div class="symbol-filters" id="symbolFilters"></div>
-    </div>
+    <div class="symbol-filters" id="symbolFilters"></div>
 
     <!-- Timezone selector -->
     <div class="tz-bar">
@@ -202,6 +180,17 @@
       <button class="tz-btn" data-tz="IE"  id="tzBtnIE" >🇮🇪 Ireland (GMT/IST)</button>
       <button class="tz-btn" data-tz="CET" id="tzBtnCET">🇪🇺 Central Europe (CET/CEST)</button>
       <button class="tz-btn" data-tz="EET" id="tzBtnEET">🇬🇷 Greece &amp; Cyprus (EET/EEST)</button>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend">
+      <span class="legend-item">🔷 Milestone</span>
+      <span class="legend-item">🎯 Deliverable</span>
+      <span class="legend-item">🔁 Monthly Meeting</span>
+      <span class="legend-item">📅 Meeting</span>
+      <span class="legend-item">📌 Project Event</span>
+      <span class="legend-item">🔧 Project Task</span>
+      <span class="legend-item">⚠️ Updated vs Grant Agreement</span>
     </div>
 
     <div id="timeline"></div>
@@ -691,37 +680,9 @@
     timeline.setWindow({start:new Date(r.start.valueOf()-i*0.25),end:new Date(r.end.valueOf()+i*0.25)});
   });
   document.getElementById('fitBtn').addEventListener('click',()=>timeline.fit());
-
-  // Today — centre on today with ±7 day window
-  document.getElementById('todayBtn').addEventListener('click',()=>{
-    const t=new Date(); const d=7*24*60*60*1000;
-    timeline.setWindow(new Date(t-d),new Date(t.valueOf()+d));
-  });
-
-  // Day / Week / Month / Year zoom presets
-  document.getElementById('dayBtn').addEventListener('click',()=>{
-    const t=new Date(); const d=12*60*60*1000;
-    timeline.setWindow(new Date(t-d),new Date(t.valueOf()+d));
-  });
-  document.getElementById('weekBtn').addEventListener('click',()=>{
-    const t=new Date(); const d=3.5*24*60*60*1000;
-    timeline.setWindow(new Date(t-d),new Date(t.valueOf()+d));
-  });
-  document.getElementById('monthBtn').addEventListener('click',()=>{
-    const t=new Date();
-    timeline.setWindow(new Date(t.getFullYear(),t.getMonth(),1),new Date(t.getFullYear(),t.getMonth()+1,0,23,59,59));
-  });
   document.getElementById('yearBtn').addEventListener('click',()=>{
     const y=new Date().getFullYear();
     timeline.setWindow(new Date(y,0,1),new Date(y,11,31,23,59,59));
-  });
-
-  // Year jump buttons
-  [2025,2026,2027,2028].forEach(y=>{
-    const btn=document.getElementById('yearBtn'+y);
-    if(btn) btn.addEventListener('click',()=>{
-      timeline.setWindow(new Date(y,0,1),new Date(y,11,31,23,59,59));
-    });
   });
 
   // ---------------------------
