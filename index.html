@@ -585,8 +585,16 @@
       if (baseKey === 'SUMMARY')           current.summary       = value;
       if (baseKey === 'DESCRIPTION')       current.description   = value.replace(/\\n/g, '\n');
       if (baseKey === 'LOCATION')          current.location      = value;
-      if (baseKey === 'DTSTART')           current.dtstart       = value;
-      if (baseKey === 'DTEND')             current.dtend         = value;
+      if (baseKey === 'DTSTART') {
+        current.dtstart = value;
+        const m = keyPart.match(/TZID=([^;:]+)/);
+        if (m) current.dtstartTZID = m[1];
+      }
+      if (baseKey === 'DTEND') {
+        current.dtend = value;
+        const m = keyPart.match(/TZID=([^;:]+)/);
+        if (m) current.dtendTZID = m[1];
+      }
       if (baseKey === 'RRULE')             current.rrule         = value;
       if (baseKey === 'RECURRENCE-ID')     current.recurrenceId  = value;
       if (baseKey === 'UID')               current.uid           = value;
@@ -615,7 +623,7 @@
       return new Date(candidate.getTime() + offsetMs);
     }
 
-    function parseTime(v) {
+    function parseTime(v, tzid) {
       if (!v) return null;
       // All-day: date-only value
       if (v.length === 8 && !v.includes('T'))
@@ -624,8 +632,9 @@
       const hh=+v.slice(9,11)||0, mm=+v.slice(11,13)||0, ss=+v.slice(13,15)||0;
       // UTC-explicit timestamp
       if (v.endsWith('Z')) return { date: new Date(Date.UTC(y,mo,d,hh,mm,ss)), allDay:false };
-      // TZID-qualified (always Europe/Dublin from our flow) — convert wall clock to UTC
-      return { date: wallClockToUTC(y, mo, d, hh, mm, ss, 'Europe/Dublin'), allDay:false };
+      // TZID-qualified (or floating) — convert wall clock in that zone to UTC
+      const zone = tzid || 'Europe/Dublin';
+      return { date: wallClockToUTC(y, mo, d, hh, mm, ss, zone), allDay:false };
     }
 
     function parseRRule(s) {
@@ -644,8 +653,8 @@
     const events = [];
 
     for (const ev of vevents) {
-      const sp = parseTime(ev.dtstart);
-      const ep = parseTime(ev.dtend);
+      const sp = parseTime(ev.dtstart, ev.dtstartTZID);
+      const ep = parseTime(ev.dtend, ev.dtendTZID);
       if (!sp) continue;
 
       // Debug: warn if description looks truncated (has OCCUR: but nothing after START:)
@@ -688,7 +697,7 @@
         events.push({...base, start:sp.date, end:ep?ep.date:null}); continue;
       }
 
-      const untilP = rule.UNTIL ? parseTime(rule.UNTIL) : null;
+      const untilP = rule.UNTIL ? parseTime(rule.UNTIL, ev.dtstartTZID) : null;
       const until  = untilP ? untilP.date : null;
       const utc    = true;  // parseTime always returns UTC-based Date objects
       const durMs  = (ep && !base.allDay) ? ep.date - sp.date : null;
