@@ -505,6 +505,16 @@
     EET: { iana: 'Europe/Athens', label: 'Greece & Cyprus (EET/EEST)',     flag: '🇬🇷' },
   };
 
+  // Optional override from URL: ?tz=IE|CET|EET
+  function loadTZFromUrl() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const raw = (params.get('tz') || '').toUpperCase();
+      if (raw && TZ_ZONES[raw]) return raw;
+    } catch (_) {}
+    return null;
+  }
+
   // Detect best default from browser IANA zone
   function detectDefaultTZ() {
     const bz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
@@ -518,6 +528,8 @@
 
   function loadTZPref() {
     try {
+      const fromUrl = loadTZFromUrl();
+      if (fromUrl && TZ_ZONES[fromUrl]) return fromUrl;
       const saved = localStorage.getItem(TZ_STORAGE_KEY);
       if (saved && TZ_ZONES[saved]) return saved;
     } catch(_) {}
