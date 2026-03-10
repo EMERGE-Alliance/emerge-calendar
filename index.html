@@ -483,7 +483,7 @@
   <img src="footer.png" alt="EMERGE footer" />
 </div>
 <div class="version-note" id="versionNote">EMERGE Calendar Hub</div>
-<script>document.getElementById("versionNote").textContent = "EMERGE Calendar Hub · Built 10 March 2026, 23:20";</script>
+<script>document.getElementById("versionNote").textContent = "EMERGE Calendar Hub · Built 10 March 2026, 23:26";</script>
 
 <script>
   // ============================================================
@@ -958,16 +958,9 @@
   // ============================================================
   let _lastViewType = '';
   function applyProjectTaskViewState(viewType) {
-    if (viewType === _lastViewType) return; // only act on actual view changes
     _lastViewType = viewType;
-    const isOverview = viewType === 'listYear' || viewType === 'multiMonthYear';
-    const isWeekDay  = viewType === 'timeGridWeek' || viewType === 'timeGridDay';
-    symbolState['PROJECT-TASK'] = isWeekDay;
+    // Re-render pills so sf-hidden is applied correctly for this view
     renderSymbolFilters();
-    document.querySelectorAll('.symbol-filter').forEach(label => {
-      const key = label.querySelector('input')?.dataset?.symbolKey;
-      if (key === 'PROJECT-TASK') label.classList.toggle('sf-hidden', isOverview);
-    });
   }
 
   function renderSymbolFilters() {
