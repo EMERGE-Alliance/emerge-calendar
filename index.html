@@ -373,9 +373,10 @@
     .fc .fc-button-group .fc-listYear-button,
     .fc .fc-button-group .fc-multiMonthYear-button,
     .fc .fc-button-group .fc-timeline-button { margin-left:5px; border-left:2px solid rgba(0,0,0,0.15) !important; }
-    /* Hide Project Task events in Year Grid and Year List views */
-    .fc-multimonth .is-project-task { display:none !important; }
-    .fc-list-view  .is-project-task { display:none !important; }
+    /* Hide Project Task events in Month, Year Grid and Year List views */
+    .fc-multimonth  .is-project-task { display:none !important; }
+    .fc-list-view   .is-project-task { display:none !important; }
+    .fc-daygrid-body .is-project-task { display:none !important; }
     /* Year grid — let cells grow to show all events, tighten event rows */
     .fc-multimonth .fc-daygrid-day-frame { min-height: 2.5em; }
     .fc-multimonth .fc-daygrid-event { font-size: 0.7em; padding: 0 2px; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -482,7 +483,7 @@
   <img src="footer.png" alt="EMERGE footer" />
 </div>
 <div class="version-note" id="versionNote">EMERGE Calendar Hub</div>
-<script>document.getElementById("versionNote").textContent = "EMERGE Calendar Hub · Built 10 March 2026, 22:44";</script>
+<script>document.getElementById("versionNote").textContent = "EMERGE Calendar Hub · Built 10 March 2026, 22:58";</script>
 
 <script>
   // ============================================================
@@ -589,6 +590,7 @@
       if (raw) {
         const parsed = JSON.parse(raw);
         SYMBOL_FILTERS.forEach(f => {
+          if (f.key === 'PROJECT-TASK') return; // view-controlled — never restore from storage
           symbolState[f.key] = typeof parsed[f.key] === 'boolean' ? parsed[f.key] : f.on;
         });
         return;
@@ -598,7 +600,10 @@
   }
 
   function saveSymbolState() {
-    try { localStorage.setItem(SYMBOL_STORAGE_KEY, JSON.stringify(symbolState)); } catch(_) {}
+    try {
+      const toSave = Object.fromEntries(Object.entries(symbolState).filter(([k]) => k !== 'PROJECT-TASK'));
+      localStorage.setItem(SYMBOL_STORAGE_KEY, JSON.stringify(toSave));
+    } catch(_) {}
   }
 
   // Detect which symbol category a title belongs to
@@ -951,16 +956,19 @@
   // ============================================================
   // RENDER SYMBOL FILTER TOGGLES
   // ============================================================
-  let currentViewType = '';
-
-  function updateSymbolFilterVisibility(viewType) {
-    currentViewType = viewType;
-    const inOverview = viewType === 'listYear' || viewType === 'multiMonthYear';
+  function applyProjectTaskViewState(viewType) {
+    const isOverview = viewType === 'listYear' || viewType === 'multiMonthYear';
+    const isWeekDay  = viewType === 'timeGridWeek' || viewType === 'timeGridDay';
+    // Determine target state
+    const targetOn = isWeekDay; // on for Week/Day, off for Month/List, hidden for Year views
+    // Update state and pill
+    symbolState['PROJECT-TASK'] = targetOn;
+    // Re-render pills with new state
+    renderSymbolFilters();
+    // Show/hide the pill itself
     document.querySelectorAll('.symbol-filter').forEach(label => {
       const key = label.querySelector('input')?.dataset?.symbolKey;
-      if (key === 'PROJECT-TASK') {
-        label.classList.toggle('sf-hidden', inOverview);
-      }
+      if (key === 'PROJECT-TASK') label.classList.toggle('sf-hidden', isOverview);
     });
   }
 
@@ -992,8 +1000,7 @@
       label.appendChild(document.createTextNode(` ${sf.emoji} ${sf.label}`));
       el.appendChild(label);
     }
-    // Re-apply view-dependent visibility after rebuild
-    updateSymbolFilterVisibility(currentViewType);
+
   }
 
   // ============================================================
@@ -1384,7 +1391,8 @@
       // If any visible event starts before 08:00, expand the grid back to midnight
       datesSet: function(info) {
         const vt = info.view.type;
-        updateSymbolFilterVisibility(vt);
+        applyProjectTaskViewState(vt);
+        refreshSymbolFilter();
         if (!vt.startsWith('timeGrid')) return;
         const cal = info.view.calendar;
         const events = cal.getEvents();
