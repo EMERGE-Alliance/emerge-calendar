@@ -99,6 +99,9 @@
     /* Symbol filter toggles */
     .symbol-filter-bar{
       display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+      border-top:1px solid #e9ecef;
+      padding-top:8px;
+      margin-top:4px;
     }
     .btn-sm{ padding:3px 10px; font-size:0.78rem; }
     .symbol-filters{
@@ -324,6 +327,7 @@
     .tz-bar {
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 6px;
       margin: 8px 0 4px;
       font-size: 0.8rem;
@@ -356,6 +360,13 @@
     .tz-notice .tz-hint  { color: #888; margin-left: 6px; }
     .fc .fc-daygrid-day-frame{ min-height: 3.5em; height: auto !important; }
     .fc .fc-daygrid-day-events{ min-height: 0 !important; }
+    /* Capitalise Today button */
+    .fc .fc-today-button { text-transform: capitalize; }
+    /* Separator before List, Year List, Year Grid, Timeline in toolbar */
+    .fc .fc-button-group .fc-listWeek-button { margin-left:3px; border-left:1px solid rgba(0,0,0,0.12) !important; }
+    .fc .fc-button-group .fc-listYear-button,
+    .fc .fc-button-group .fc-multiMonthYear-button,
+    .fc .fc-button-group .fc-timeline-button { margin-left:5px; border-left:2px solid rgba(0,0,0,0.15) !important; }
     /* Year grid — let cells grow to show all events, tighten event rows */
     .fc-multimonth .fc-daygrid-day-frame { min-height: 2.5em; }
     .fc-multimonth .fc-daygrid-event { font-size: 0.7em; padding: 0 2px; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -388,8 +399,8 @@
     <div class="controls">
       <div class="toggles" id="toggles"></div>
       <div class="actions">
-        <button class="btn" id="selectAllBtn" type="button">Select all</button>
-        <button class="btn" id="selectNoneBtn" type="button">Select none</button>
+        <button class="btn btn-sm" id="selectAllBtn" type="button">All</button>
+        <button class="btn btn-sm" id="selectNoneBtn" type="button">None</button>
         <button class="btn" id="copyLinkBtn" type="button">Copy link</button>
       </div>
     </div>
@@ -1323,8 +1334,8 @@
             const params = new URLSearchParams();
             params.set('wps', Array.from(sel).sort().join(',') || 'none');
             const yr = new Date().getFullYear();
-            const yrPage = [2025,2026,2027,2028].includes(yr) ? 'timeline_'+yr+'.html' : 'timeline.html';
-            window.location.href = yrPage + '?' + params.toString();
+            params.set('year', yr);
+            window.location.href = 'timeline.html?' + params.toString();
           }
         }
       },
@@ -1340,10 +1351,11 @@
       scrollTime:  '08:00:00',
       eventTimeFormat: { hour: 'numeric', minute: '2-digit' },
       views: {
-        listYear:       { buttonText:'Year list' },
-        multiMonthYear: { buttonText:'Year grid', dayMaxEvents: false },
+        listYear:       { buttonText:'Year List' },
+        multiMonthYear: { buttonText:'Year Grid', dayMaxEvents: false },
         timeGridWeek:   { buttonText:'Week' },
-        timeGridDay:    { buttonText:'Day' }
+        timeGridDay:    { buttonText:'Day' },
+        listWeek:       { buttonText:'List' },
       },
       // If any visible event starts before 08:00, expand the grid back to midnight
       datesSet: function(info) {
@@ -1372,17 +1384,22 @@
         const ev    = info.event;
         // In list view, hide holiday-label duplicates (background events have no list row, 
         // but label events do — style them subtly)
-        if (ev.extendedProps?.isHoliday && ev.display !== 'background') {
-          const viewType = info.view.type;
-          // Hide holidays completely from Year list — they clutter it
-          if (viewType === 'listYear') {
-            el.style.display = 'none';
-            // Also hide the day heading if this is the only event that day
-            // (FullCalendar will still show the date header — hide via parent)
-            const row = el.closest('tr');
-            if (row) row.style.display = 'none';
-            return;
-          }
+        const viewType = info.view.type;
+        const inOverview = viewType === 'listYear' || viewType === 'multiMonthYear';
+
+        // Hide holidays from Year List and Year Grid
+        if (ev.extendedProps?.isHoliday && ev.display !== 'background' && inOverview) {
+          el.style.display = 'none';
+          const row = el.closest('tr');
+          if (row) row.style.display = 'none';
+          return;
+        }
+        // Hide Project Tasks from Year List and Year Grid
+        if (inOverview && ev.extendedProps?.emergeType === 'PROJECT-TASK') {
+          el.style.display = 'none';
+          const row = el.closest('tr');
+          if (row) row.style.display = 'none';
+          return;
         }
         const title = ev.title;
         const type  = ev.extendedProps?.emergeType || 'GENERAL';
