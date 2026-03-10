@@ -120,6 +120,7 @@
     }
     .symbol-filter input{ width:14px; height:14px; margin:0; accent-color:var(--emerge-blue); }
     /* .symbol-filter.active colours applied inline via renderSymbolFilters() */
+    .symbol-filter.sf-hidden { display:none !important; }
 
     /* Legend */
     .legend{
@@ -481,7 +482,7 @@
   <img src="footer.png" alt="EMERGE footer" />
 </div>
 <div class="version-note" id="versionNote">EMERGE Calendar Hub</div>
-<script>document.getElementById("versionNote").textContent = "EMERGE Calendar Hub · Built 10 March 2026, 21:48";</script>
+<script>document.getElementById("versionNote").textContent = "EMERGE Calendar Hub · Built 10 March 2026, 22:02";</script>
 
 <script>
   // ============================================================
@@ -950,6 +951,16 @@
   // ============================================================
   // RENDER SYMBOL FILTER TOGGLES
   // ============================================================
+  function updateSymbolFilterVisibility(viewType) {
+    const inOverview = viewType === 'listYear' || viewType === 'multiMonthYear';
+    document.querySelectorAll('.symbol-filter').forEach(label => {
+      const key = label.querySelector('input')?.dataset?.symbolKey;
+      if (key === 'PROJECT-TASK') {
+        label.classList.toggle('sf-hidden', inOverview);
+      }
+    });
+  }
+
   function renderSymbolFilters() {
     const el = document.getElementById('symbolFilters');
     el.innerHTML = '';
@@ -1368,6 +1379,7 @@
       // If any visible event starts before 08:00, expand the grid back to midnight
       datesSet: function(info) {
         const vt = info.view.type;
+        updateSymbolFilterVisibility(vt);
         if (!vt.startsWith('timeGrid')) return;
         const cal = info.view.calendar;
         const events = cal.getEvents();
@@ -1531,7 +1543,7 @@
       const displayIana = TZ_ZONES[loadTZPref()].iana;
       const wpEvents = filtered.map(e => {
         const rawCats = e.categories || [];
-        const isUpdated = rawCats.includes('CATEGORY7') || rawCats.includes('BRONZE');
+        const isUpdated = rawCats.includes('CATEGORY7') || rawCats.includes('BRONZE') || rawCats.includes('UPDATED');
         const cls = (Array.isArray(e.className)?e.className:(e.className?[e.className]:[])).concat([def.className]);
         if (isUpdated) cls.push('has-updated');
         if (e.allDay) return {
