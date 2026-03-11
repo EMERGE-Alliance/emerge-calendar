@@ -373,17 +373,8 @@
     .fc .fc-button-group .fc-listYear-button,
     .fc .fc-button-group .fc-multiMonthYear-button,
     .fc .fc-button-group .fc-timeline-button { margin-left:5px; border-left:2px solid rgba(0,0,0,0.15) !important; }
-    /* Hide holidays in all list views and Year Grid */
-    .fc-list-view          .holiday-label   { display:none !important; }
-    .fc-multimonth         .holiday-label   { display:none !important; }
-    /* Hide Project Tasks in Month, Year Grid, Year List and all List views */
-    .fc-dayGridMonth-view  .is-project-task { display:none !important; }
-    .fc-multimonth-view    .is-project-task { display:none !important; }
-    .fc-multimonth         .is-project-task { display:none !important; }
-    .fc-list-view          .is-project-task { display:none !important; }
-    .fc-listYear-view      .is-project-task { display:none !important; }
-    .fc-listYear-view .fc-list-event.is-project-task { display:none !important; }
-    .fc-list-event.is-project-task          { display:none !important; }
+
+
     /* Year grid — let cells grow to show all events, tighten event rows */
     .fc-multimonth .fc-daygrid-day-frame { min-height: 2.5em; }
     .fc-multimonth .fc-daygrid-event { font-size: 0.7em; padding: 0 2px; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -490,7 +481,7 @@
   <img src="footer.png" alt="EMERGE footer" />
 </div>
 <div class="version-note" id="versionNote">EMERGE Calendar Hub</div>
-<script>document.getElementById("versionNote").textContent = "EMERGE Calendar Hub · Built 11 March 2026, 00:00";</script>
+<script>document.getElementById("versionNote").textContent = "EMERGE Calendar Hub · Built 11 March 2026, 00:14";</script>
 
 <script>
   // ============================================================
@@ -605,13 +596,12 @@
     } catch(_) {
       SYMBOL_FILTERS.forEach(f => symbolState[f.key] = f.on);
     }
-    // PROJECT-TASK is always enabled — no pill, always visible (hidden in overview views via CSS)
-    symbolState['PROJECT-TASK'] = true;
+
   }
 
   function saveSymbolState() {
     try {
-      const toSave = Object.fromEntries(Object.entries(symbolState).filter(([k]) => k !== 'PROJECT-TASK'));
+      const toSave = symbolState;
       localStorage.setItem(SYMBOL_STORAGE_KEY, JSON.stringify(toSave));
     } catch(_) {}
   }
@@ -619,7 +609,6 @@
   // Detect which symbol category a title belongs to
   function isEventVisible(ev) {
     const key = getSymbolKey(ev);
-    if (key === 'PROJECT-TASK') return true; // always loaded — CSS hides it per-view
     return symbolState[key] !== false;
   }
 
@@ -885,7 +874,7 @@
     { key:'MONTHLY-MEETING',emoji:'🔁', label:'Monthly Meetings', on:true,  color:'#2e7d32', accent:'#d4edda' },
     { key:'MEETING',        emoji:'📅', label:'Meetings',         on:true,  color:'#00897b', accent:'#d0f0ec' },
     { key:'PROJECT-EVENT',  emoji:'📌', label:'Project Events',   on:true,  color:'#1565c0', accent:'#dbeafe' },
-    // PROJECT-TASK pill removed — tasks hidden in overview views via CSS, visible in day/week/month always
+    { key:'PROJECT-TASK',   emoji:'🔧', label:'Project Tasks',    color:'#c0392b', accent:'#fde8e8' },
     { key:'GENERAL',        emoji:'📄', label:'General/Untagged', on:true,  color:'#64748b', accent:'#f1f5f9' },
   ];
 
@@ -1408,7 +1397,7 @@
       },
       eventClassNames: function(arg) {
         const type = arg.event.extendedProps?.emergeType || '';
-        return type === 'PROJECT-TASK' ? ['is-project-task'] : [];
+        return [];
       },
       eventContent: gridEventContent,
 
@@ -1421,7 +1410,13 @@
         const viewType = info.view.type;
         const inOverview = viewType === 'listYear' || viewType === 'multiMonthYear';
 
-        // Holidays and Project Tasks in overview views are hidden via CSS (.holiday-label, .is-project-task)
+        // Hide Project Tasks from Year List and Year Grid
+        if (inOverview && ev.extendedProps?.emergeType === 'PROJECT-TASK') {
+          el.style.display = 'none';
+          const row = el.closest('tr');
+          if (row) row.style.display = 'none';
+          return;
+        }
         const title = ev.title;
         const type  = ev.extendedProps?.emergeType || 'GENERAL';
         // In list view, prepend 📄 for untagged events
