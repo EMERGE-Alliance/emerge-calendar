@@ -481,7 +481,7 @@
   <img src="footer.png" alt="EMERGE footer" />
 </div>
 <div class="version-note" id="versionNote">EMERGE Calendar Hub</div>
-<script>document.getElementById("versionNote").textContent = "EMERGE Calendar Hub · Built 11 March 2026, 00:23";</script>
+<script>document.getElementById("versionNote").textContent = "EMERGE Calendar Hub · Built 11 March 2026, 00:29";</script>
 
 <script>
   // ============================================================
@@ -1408,6 +1408,13 @@
         const viewType = info.view.type;
         const inOverview = viewType === 'listYear' || viewType === 'multiMonthYear';
 
+        // Hide holidays from Year List
+        if (viewType === 'listYear' && ev.extendedProps?.isHoliday) {
+          el.style.display = 'none';
+          const row = el.closest('tr');
+          if (row) row.style.display = 'none';
+          return;
+        }
 
         const title = ev.title;
         const type  = ev.extendedProps?.emergeType || 'GENERAL';
