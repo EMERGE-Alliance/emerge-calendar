@@ -378,8 +378,12 @@
     .fc-multimonth         .holiday-label   { display:none !important; }
     /* Hide Project Tasks in Month, Year Grid, Year List and all List views */
     .fc-dayGridMonth-view  .is-project-task { display:none !important; }
+    .fc-multimonth-view    .is-project-task { display:none !important; }
     .fc-multimonth         .is-project-task { display:none !important; }
     .fc-list-view          .is-project-task { display:none !important; }
+    .fc-listYear-view      .is-project-task { display:none !important; }
+    .fc-listYear-view .fc-list-event.is-project-task { display:none !important; }
+    .fc-list-event.is-project-task          { display:none !important; }
     /* Year grid — let cells grow to show all events, tighten event rows */
     .fc-multimonth .fc-daygrid-day-frame { min-height: 2.5em; }
     .fc-multimonth .fc-daygrid-event { font-size: 0.7em; padding: 0 2px; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -486,7 +490,7 @@
   <img src="footer.png" alt="EMERGE footer" />
 </div>
 <div class="version-note" id="versionNote">EMERGE Calendar Hub</div>
-<script>document.getElementById("versionNote").textContent = "EMERGE Calendar Hub · Built 10 March 2026, 23:53";</script>
+<script>document.getElementById("versionNote").textContent = "EMERGE Calendar Hub · Built 11 March 2026, 00:00";</script>
 
 <script>
   // ============================================================
@@ -614,7 +618,9 @@
 
   // Detect which symbol category a title belongs to
   function isEventVisible(ev) {
-    return symbolState[getSymbolKey(ev)] !== false;
+    const key = getSymbolKey(ev);
+    if (key === 'PROJECT-TASK') return true; // always loaded — CSS hides it per-view
+    return symbolState[key] !== false;
   }
 
   // ============================================================
