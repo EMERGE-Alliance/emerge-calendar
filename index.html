@@ -481,7 +481,7 @@
   <img src="footer.png" alt="EMERGE footer" />
 </div>
 <div class="version-note" id="versionNote">EMERGE Calendar Hub</div>
-<script>document.getElementById("versionNote").textContent = "EMERGE Calendar Hub · Built 11 March 2026, 00:14";</script>
+<script>document.getElementById("versionNote").textContent = "EMERGE Calendar Hub · Built 11 March 2026, 00:23";</script>
 
 <script>
   // ============================================================
@@ -874,7 +874,6 @@
     { key:'MONTHLY-MEETING',emoji:'🔁', label:'Monthly Meetings', on:true,  color:'#2e7d32', accent:'#d4edda' },
     { key:'MEETING',        emoji:'📅', label:'Meetings',         on:true,  color:'#00897b', accent:'#d0f0ec' },
     { key:'PROJECT-EVENT',  emoji:'📌', label:'Project Events',   on:true,  color:'#1565c0', accent:'#dbeafe' },
-    { key:'PROJECT-TASK',   emoji:'🔧', label:'Project Tasks',    color:'#c0392b', accent:'#fde8e8' },
     { key:'GENERAL',        emoji:'📄', label:'General/Untagged', on:true,  color:'#64748b', accent:'#f1f5f9' },
   ];
 
@@ -888,7 +887,6 @@
     if (t.startsWith('🔁')) return 'MONTHLY-MEETING';
     if (t.startsWith('📅')) return 'MEETING';
     if (t.startsWith('📌')) return 'PROJECT-EVENT';
-    if (t.startsWith('🔧')) return 'PROJECT-TASK';
     return 'GENERAL';
   }
 
@@ -1410,13 +1408,7 @@
         const viewType = info.view.type;
         const inOverview = viewType === 'listYear' || viewType === 'multiMonthYear';
 
-        // Hide Project Tasks from Year List and Year Grid
-        if (inOverview && ev.extendedProps?.emergeType === 'PROJECT-TASK') {
-          el.style.display = 'none';
-          const row = el.closest('tr');
-          if (row) row.style.display = 'none';
-          return;
-        }
+
         const title = ev.title;
         const type  = ev.extendedProps?.emergeType || 'GENERAL';
         // In list view, prepend 📄 for untagged events
@@ -1521,7 +1513,13 @@
 
     // Filter events by active symbol filters
     function applySymbolFilter(events) {
-      return events.filter(e => isEventVisible(e));
+      return events.filter(e => {
+        // PROJECT-TASK events not shown in main calendar (timeline.html only)
+        const et = (e.emergeType || e.extendedProps?.emergeType || '').toUpperCase();
+        if (et === 'PROJECT-TASK') return false;
+        if (e.title && e.title.startsWith('🔧')) return false;
+        return isEventVisible(e);
+      });
     }
 
     function addWpSource(key, def, events) {
