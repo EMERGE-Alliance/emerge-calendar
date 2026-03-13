@@ -1,4 +1,5 @@
-const R2_BASE = 'https://pub-577ff589d29c4ebe9d2ea393dcf228f1.r2.dev';
+//const R2_BASE = 'https://pub-577ff589d29c4ebe9d2ea393dcf228f1.r2.dev';
+const R2_BASE = 'https://calendar.euemerge.eu';
 
 export default {
   async fetch(request, env, ctx) {
