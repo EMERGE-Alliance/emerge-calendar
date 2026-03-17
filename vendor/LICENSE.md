@@ -1,4 +1,4 @@
-MIT License
+MIT License - # FullCalendar Standard Bundle
 
 Copyright (c) 2021 Adam Shaw
 
