@@ -3,14 +3,22 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    // Serve ICS files from R2 under /ics/
+    let key = null;
+
+    // Support /ics/wp1.ics style
     if (path.startsWith('/ics/')) {
-      const key = path.replace('/ics/', '');
+      key = path.replace('/ics/', '');
+    }
+    // Support /wp1.ics, /master.ics, /holidays.ics style
+    else if (
+      /^\/wp\d+\.ics$/.test(path) ||
+      path === '/master.ics' ||
+      path === '/holidays.ics'
+    ) {
+      key = path.slice(1);
+    }
 
-      if (!key) {
-        return new Response('Missing ICS filename', { status: 400 });
-      }
-
+    if (key) {
       const object = await env.EMERGE_ICS.get(key);
 
       if (!object) {
@@ -27,7 +35,6 @@ export default {
       });
     }
 
-    // Everything else goes to the static Pages site
     return env.ASSETS.fetch(request);
   }
 };
