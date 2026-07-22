@@ -2,7 +2,8 @@ name: Deploy to Cloudflare Pages
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -30,14 +31,10 @@ jobs:
             echo "::error::Repository secret CLOUDFLARE_ACCOUNT_ID is missing or empty."
             exit 1
           fi
-          echo "Cloudflare secrets are present."
-
-      - name: Confirm Cloudflare access
-        run: npx --yes wrangler@4 whoami
-
-      - name: Confirm Pages project
-        run: npx --yes wrangler@4 pages project list
 
       - name: Deploy to Cloudflare Pages
-        run: npx --yes wrangler@4 pages deploy . --project-name=emerge-calendar --branch=main
-
+        run: >-
+          npx --yes wrangler@4 pages deploy .
+          --project-name=emerge-calendar
+          --branch=main
+          --commit-hash=${{ github.sha }}
