@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <title>EMERGE – Calendar Hub </title>
@@ -7,6 +7,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="shortcut icon" href="/favicon.ico">
   <link rel="manifest" href="/site.webmanifest">
   
   <!-- FullCalendar (free) — vendored locally, see vendor/fullcalendar.min.js -->
@@ -14,7 +15,9 @@
 
   <style>
     :root{
-      --emerge-blue:#004f9f;
+      --emerge-blue:#173f73;
+      --emerge-blue-dark:#0f2e54;
+      --emerge-yellow:#f2c94c;
       --emerge-mint:#bfeee6;
       --emerge-mint-soft:#e6faf6;
       --weekend:#f0f2f5;
@@ -31,43 +34,119 @@
       color: var(--text);
     }
 
-    header{
-      color:#fff;
-      padding:16px 24px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-      background-image: url('header.png');
-      background-size: cover;
-      background-position: center top;
+    .site-header {
       position: relative;
-    }
-    /* Dark overlay so white text stays readable over the light parts of the header image */
-    header::before{
-      content:'';
-      position:absolute; inset:0;
-      background: rgba(0,0,0,0.18);
-      pointer-events:none;
+      overflow: hidden;
+      color: #ffffff;
+      border-bottom: 5px solid var(--emerge-yellow);
+      background:
+        url("./assets/emerge-header-standard.png") right center / auto 100% no-repeat,
+        linear-gradient(135deg, var(--emerge-blue-dark), var(--emerge-blue));
+      box-shadow: 0 2px 6px rgba(0,0,0,0.16);
     }
 
-    .header-container{ display:flex; align-items:center; gap:16px; position:relative; z-index:1; }
-    .header-logo{ background:#ffffff; padding:6px; border-radius:6px; height:60px; }
-    .header-text h1{ margin:0; font-size:1.3rem; }
-    .header-text p{ margin:4px 0 0; font-size:0.9rem; opacity:0.95; }
+    .header-inner {
+      position: relative;
+      z-index: 1;
+      max-width: 1180px;
+      min-height: 170px;
+      margin: 0 auto;
+      padding: 30px 28px;
+      display: flex;
+      align-items: center;
+    }
+
+    .header-text {
+      max-width: 650px;
+      padding-right: 24px;
+    }
+
+    .header-text h1 {
+      margin: 0 0 6px 0;
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .header-text p {
+      margin: 0;
+      color: rgba(255,255,255,0.88);
+      font-size: 1rem;
+    }
+
+    .site-footer {
+      width: 100%;
+      margin-top: 40px;
+      background: #ffffff;
+      border-top: 1px solid #e1e6ed;
+    }
+
+    .footer-partners {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 20px 28px;
+      text-align: center;
+      line-height: 0;
+    }
+
+    .footer-partners img {
+      display: block;
+      width: 100%;
+      max-width: 1320px;
+      height: auto;
+      margin: 0 auto;
+    }
+
+    .footer-brand-band { background: #312682; }
+
+    .footer-brand-inner {
+      max-width: 1180px;
+      min-height: 132px;
+      margin: 0 auto;
+      padding: 16px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 36px;
+    }
+
+    .footer-brand,
+    .footer-eu {
+      display: block;
+      height: auto;
+      object-fit: contain;
+    }
+
+    .footer-brand { width: min(470px, 52%); }
+    .footer-eu { width: min(360px, 40%); }
+    .footer-accent { height: 8px; background: #a8dfda; }
+
+    @media (max-width: 760px) {
+      .site-header {
+        background:
+          url("./assets/emerge-header-standard.png") calc(100% + 105px) center / auto 100% no-repeat,
+          linear-gradient(135deg, var(--emerge-blue-dark), var(--emerge-blue));
+      }
+
+      .header-inner { min-height: 150px; padding: 24px 20px; }
+      .header-text { max-width: 82%; padding-right: 0; }
+      .header-text h1 { font-size: 1.55rem; }
+      .header-text p { font-size: 0.9rem; }
+
+      .footer-partners { padding: 20px 16px; }
+      .footer-brand-inner { min-height: 112px; padding: 14px 16px; gap: 16px; }
+      .footer-brand { width: 54%; }
+      .footer-eu { width: 40%; }
+      .footer-accent { height: 7px; }
+    }
+
+    @media (max-width: 460px) {
+      .footer-brand-inner { gap: 10px; padding-left: 10px; padding-right: 10px; }
+      .footer-brand { width: 55%; }
+      .footer-eu { width: 41%; }
+    }
 
     main{ max-width:1200px; margin:20px auto; padding:0 12px 40px; }
-
-    /* Brand header/footer images */
-    .brand-header{
-      width:100%; display:block; line-height:0;
-    }
-    .brand-header img{
-      width:100%; height:auto; display:block;
-    }
-    .brand-footer{
-      width:100%; display:block; line-height:0; margin-top:40px;
-    }
-    .brand-footer img{
-      width:100%; height:auto; display:block;
-    }
 
     .card{
       background: var(--card);
@@ -395,12 +474,11 @@
 </head>
 
 <body>
-<header>
-  <div class="header-container">
-    <a href="https://euemerge.eu" target="_blank" rel="noopener"><img src="https://euemerge.eu/wp-content/uploads/2025/05/emerge_website.png" alt="EMERGE Logo" class="header-logo" /></a>
+<header class="site-header">
+  <div class="header-inner">
     <div class="header-text">
       <h1>EMERGE Calendar Hub</h1>
-
+      <p>Alliance meetings, activities, milestones and deliverables in one shared view.</p>
     </div>
   </div>
 </header>
@@ -482,11 +560,23 @@
     </div>
   </div>
 </main>
-<div class="brand-footer">
-  <img src="footer.png" alt="EMERGE footer" />
-</div>
 <div class="version-note" id="versionNote">EMERGE Calendar Hub</div>
 <script>document.getElementById("versionNote").textContent = "EMERGE Calendar Hub · Built 11 March 2026, 00:29";</script>
+<footer class="site-footer">
+  <div class="footer-partners">
+    <picture>
+      <source media="(max-width: 760px)" srcset="./assets/emerge-partner-logos-mobile.png">
+      <img src="./assets/emerge-partner-logos.png" alt="EMERGE partner universities">
+    </picture>
+  </div>
+  <div class="footer-brand-band">
+    <div class="footer-brand-inner">
+      <img class="footer-brand" src="./assets/emerge-footer-brand.png" alt="EMERGE European University Alliance">
+      <img class="footer-eu" src="./assets/emerge-footer-eu.png" alt="Co-funded by the European Union">
+    </div>
+  </div>
+  <div class="footer-accent" aria-hidden="true"></div>
+</footer>
 
 <script>
   // ============================================================
