@@ -1,19 +1,25 @@
 name: Deploy to Cloudflare Pages
+
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       deployments: write
+
     steps:
-      - uses: actions/checkout@v3
-      - uses: cloudflare/pages-action@v1
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: emerge-calendar
-          directory: .
+          command: pages deploy . --project-name=emerge-calendar --branch=main
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
