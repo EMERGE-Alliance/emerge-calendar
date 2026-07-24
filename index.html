@@ -133,19 +133,20 @@
       .site-header::after {
         content: "";
         position: absolute;
-        right: -18px;
-        bottom: -3px;
-        width: 270px;
-        height: 106px;
-        background: url("./assets/emerge-header-standard.png") right bottom / auto 100% no-repeat;
+        top: 0;
+        right: -20px;
+        bottom: auto;
+        width: 300px;
+        height: 145px;
+        background: url("./assets/emerge-header-standard.png") right top / auto 100% no-repeat;
         pointer-events: none;
         z-index: 0;
       }
 
       .header-inner {
-        min-height: 164px;
-        padding: 22px 18px 78px;
-        align-items: flex-start;
+        min-height: 145px;
+        padding: 24px 210px 24px 18px;
+        align-items: center;
       }
 
       .header-text {
@@ -160,7 +161,7 @@
       }
 
       .header-text p {
-        max-width: 34rem;
+        max-width: 30rem;
         font-size: 0.9rem;
         line-height: 1.4;
       }
@@ -173,25 +174,40 @@
     }
 
     @media (max-width: 460px) {
-
       .site-header::after {
-        right: -24px;
+        top: 0;
+        right: -28px;
         width: 235px;
-        height: 92px;
+        height: 112px;
       }
 
       .header-inner {
-        min-height: 150px;
-        padding: 20px 16px 68px;
+        min-height: 132px;
+        padding: 20px 145px 20px 16px;
       }
 
-      .header-text h1 { font-size: 1.35rem; }
-      .header-text p { font-size: 0.84rem; }
+      .header-text h1 { font-size: 1.3rem; }
+      .header-text p { font-size: 0.8rem; line-height: 1.35; }
       .footer-brand-inner { gap: 10px; padding-left: 10px; padding-right: 10px; }
       .footer-brand { width: 55%; }
       .footer-eu { width: 41%; }
     }
 
+    @media (max-width: 360px) {
+      .site-header::after {
+        right: -32px;
+        width: 205px;
+        height: 98px;
+      }
+
+      .header-inner {
+        min-height: 136px;
+        padding-right: 118px;
+      }
+
+      .header-text h1 { font-size: 1.2rem; }
+      .header-text p { font-size: 0.76rem; }
+    }
     main{ max-width:1200px; margin:20px auto; padding:0 12px 40px; }
 
     .card{
