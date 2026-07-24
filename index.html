@@ -45,6 +45,10 @@
       box-shadow: 0 2px 6px rgba(0,0,0,0.16);
     }
 
+    .site-header::after {
+      content: none;
+    }
+
     .header-inner {
       position: relative;
       z-index: 1;
@@ -123,15 +127,43 @@
 
     @media (max-width: 760px) {
       .site-header {
-        background:
-          url("./assets/emerge-header-standard.png") calc(100% + 105px) center / auto 100% no-repeat,
-          linear-gradient(135deg, var(--emerge-blue-dark), var(--emerge-blue));
+        background: linear-gradient(135deg, var(--emerge-blue-dark), var(--emerge-blue));
       }
 
-      .header-inner { min-height: 150px; padding: 24px 20px; }
-      .header-text { max-width: 82%; padding-right: 0; }
-      .header-text h1 { font-size: 1.55rem; }
-      .header-text p { font-size: 0.9rem; }
+      .site-header::after {
+        content: "";
+        position: absolute;
+        right: -18px;
+        bottom: -3px;
+        width: 270px;
+        height: 106px;
+        background: url("./assets/emerge-header-standard.png") right bottom / auto 100% no-repeat;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .header-inner {
+        min-height: 164px;
+        padding: 22px 18px 78px;
+        align-items: flex-start;
+      }
+
+      .header-text {
+        max-width: none;
+        width: 100%;
+        padding-right: 0;
+      }
+
+      .header-text h1 {
+        font-size: 1.5rem;
+        line-height: 1.18;
+      }
+
+      .header-text p {
+        max-width: 34rem;
+        font-size: 0.9rem;
+        line-height: 1.4;
+      }
 
       .footer-partners { padding: 20px 16px; }
       .footer-brand-inner { min-height: 112px; padding: 14px 16px; gap: 16px; }
@@ -141,6 +173,20 @@
     }
 
     @media (max-width: 460px) {
+
+      .site-header::after {
+        right: -24px;
+        width: 235px;
+        height: 92px;
+      }
+
+      .header-inner {
+        min-height: 150px;
+        padding: 20px 16px 68px;
+      }
+
+      .header-text h1 { font-size: 1.35rem; }
+      .header-text p { font-size: 0.84rem; }
       .footer-brand-inner { gap: 10px; padding-left: 10px; padding-right: 10px; }
       .footer-brand { width: 55%; }
       .footer-eu { width: 41%; }
